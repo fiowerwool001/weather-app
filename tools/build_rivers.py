@@ -81,8 +81,11 @@ def load_geometry():
         if time.time() - start > 25 * 60:
             print("geometry time budget used; the rest next run"); break
         j = overpass_box(la, lo, la + 2, lo + 2)
-        if j is None:
-            continue
+        if j is None:  # dense boxes time out: try the four 1x1 degree quarters instead
+            parts = [overpass_box(a, b, a + 1, b + 1) for a in (la, la + 1) for b in (lo, lo + 1)]
+            if any(x is None for x in parts):
+                continue
+            j = {"elements": [el for x in parts for el in x.get("elements", [])]}
         for el in j.get("elements", []):
             pts = [(round(p["lat"], 4), round(p["lon"], 4)) for p in el.get("geometry") or []]
             pts = simplify(pts, 0.0015)

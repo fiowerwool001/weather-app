@@ -381,7 +381,7 @@ body[data-view="map"] .tabbar { display: none; }
     <label class="tgl"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 15h9a3.5 3.5 0 0 0 0-7 5 5 0 0 0-9.6 1.4A3 3 0 0 0 7 15z M12 15v6" fill="none" stroke="#93A3BA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>พยากรณ์อากาศรายจุด<input type="checkbox" id="tg-pins"><span class="sw"></span></label>
     <label class="tgl"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.2-9.4C1.6 7.6 4 4.2 7.4 4.2c2 0 3.6 1.1 4.6 2.7 1-1.6 2.6-2.7 4.6-2.7 3.4 0 5.8 3.4 4.6 6.9-1.7 4.8-9.2 9.4-9.2 9.4z" fill="none" stroke="#93A3BA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>สถานที่โปรดของฉัน<input type="checkbox" id="tg-favs"><span class="sw"></span></label>
     <label class="tgl"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15c3-2 5-2 7.5 0s4.5 2 7.5 0 3-2 3-2 M3 20c3-2 5-2 7.5 0s4.5 2 7.5 0 3-2 3-2 M8 11V6l4-3 4 3v5" fill="none" stroke="#93A3BA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>แม่น้ำเสี่ยงน้ำท่วม<input type="checkbox" id="tg-rivers"><span class="sw"></span></label>
-    <p class="dnote" id="river-note">สีจุดแม่น้ำ = น้ำสูงสุดใน 14 วันเทียบกับปกติ: <b style="color:#5AB0FF">●</b> ปกติ <b style="color:#FFC24A">●</b> 2 เท่า <b style="color:#FF8A4C">●</b> 4 เท่า <b style="color:#FF5A5F">●</b> 8 เท่าขึ้นไป</p>
+    <p class="dnote" id="river-note">เส้นแม่น้ำ สีตามน้ำสูงสุดใน 14 วันเทียบกับปกติ: <b style="color:#5AB0FF">━</b> ปกติ <b style="color:#FFC24A">━</b> 2 เท่า <b style="color:#FF8A4C">━</b> 4 เท่า <b style="color:#FF5A5F">━</b> 8 เท่าขึ้นไป</p>
     <label class="tgl"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11v10H4z M15 10l5-3v10l-5-3" fill="none" stroke="#93A3BA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>เว็บแคม<input type="checkbox" id="tg-cams"><span class="sw"></span></label>
     <label class="tgl sub"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v14H3z M3 15l5-4 4 3 3-2 6 4" fill="none" stroke="#93A3BA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>ดูตัวอย่างภาพเว็บแคม<input type="checkbox" id="tg-campv"><span class="sw"></span></label>
     <p class="dnote" id="cam-note" hidden></p>
@@ -1348,53 +1348,106 @@ body[data-view="map"] .tabbar { display: none; }
       $("cam-note").hidden = false; $("cam-note").textContent = "โหลดกล้องไม่ได้ ลองใหม่ภายหลัง";
     }
   }
-  // ----- rivers at risk: GloFAS river flow sampled on a grid over the map -----
-  const RGRID = 12;
+  // ----- rivers at risk: river lines from OpenStreetMap, coloured by GloFAS flow along each stretch -----
   let riversOn = store.get("wx-rivers", false), riverLayer = null, riverSeq = 0, riverAt = null;
+  const riverRender = window.L ? L.canvas({ padding: 0.3, tolerance: 6 }) : null;
+  const flowCache = new Map();          // "lat,lon" -> {med, peak, peakAt, now, time} or null
+  const kmBetween = (a, b) => { const R = 6371, dLat = (b.lat - a.lat) * Math.PI / 180, dLon = (b.lon - a.lon) * Math.PI / 180, m = Math.cos((a.lat + b.lat) * Math.PI / 360); return R * Math.sqrt(dLat * dLat + (dLon * m) * (dLon * m)); };
+  async function overpass(q) {
+    for (const host of ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]) {
+      try { const r = await fetch(host, { method: "POST", body: "data=" + encodeURIComponent(q), headers: { "Content-Type": "application/x-www-form-urlencoded" } }); if (r.ok) return await r.json(); } catch (_) {}
+    }
+    throw new Error("overpass");
+  }
+  async function flowAt(points) {
+    const need = points.filter((p) => !flowCache.has(p.key));
+    for (let i = 0; i < need.length; i += 100) {
+      const part = need.slice(i, i + 100);
+      const r = await fetch("https://flood-api.open-meteo.com/v1/flood?" + new URLSearchParams({ latitude: part.map((p) => p.lat.toFixed(3)).join(","), longitude: part.map((p) => p.lon.toFixed(3)).join(","), daily: "river_discharge,river_discharge_max", past_days: "60", forecast_days: "15" }));
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      let j = await r.json(); if (!Array.isArray(j)) j = [j];
+      part.forEach((p, k) => {
+        const d = j[k] && j[k].daily; let v = null;
+        if (d && d.river_discharge) {
+          const q = d.river_discharge, qm = d.river_discharge_max || q;
+          let ti = d.time.indexOf(new Date().toLocaleDateString("sv-SE")); if (ti < 0) ti = 60;
+          const past = q.slice(0, ti).filter((x) => x != null).sort((a, b) => a - b);
+          if (past.length) {
+            const med = past[Math.floor(past.length / 2)];
+            let peak = 0, peakAt = ti;
+            for (let i2 = ti; i2 < Math.min(qm.length, ti + 14); i2++) if ((qm[i2] || 0) > peak) { peak = qm[i2]; peakAt = i2; }
+            v = { med, peak, now: q[ti] || 0, peakDay: d.time[peakAt] };
+          }
+        }
+        flowCache.set(p.key, v);
+      });
+    }
+  }
   async function loadRivers() {
     if (!map || !riversOn || (view !== "map" && view !== "today")) return;
+    if (map.getZoom() < 6) { $("river-note").textContent = "ซูมแผนที่เข้าใกล้อีกหน่อยเพื่อดูเส้นแม่น้ำ"; if (riverLayer) riverLayer.clearLayers(); riverAt = null; return; }
     const vb = map.getBounds();
-    if (riverAt && riverAt.b.contains(vb) && Math.abs(riverAt.z - map.getZoom()) < 2) return;
-    const pad = vb.pad(0.15), s0 = pad.getSouth(), n0 = pad.getNorth(), w0 = pad.getWest(), e0 = pad.getEast();
-    const lats = [], lons = [];
-    for (let r = 0; r < RGRID; r++) for (let c = 0; c < RGRID; c++) {
-      lats.push((n0 - ((r + 0.5) / RGRID) * (n0 - s0)).toFixed(3));
-      lons.push((((w0 + ((c + 0.5) / RGRID) * (e0 - w0)) + 540) % 360 - 180).toFixed(3));
-    }
+    if (riverAt && riverAt.b.contains(vb) && map.getZoom() >= riverAt.z) return;
+    const pad = vb.pad(0.1), s0 = pad.getSouth(), n0 = pad.getNorth(), w0 = pad.getWest(), e0 = pad.getEast();
     const seq = ++riverSeq;
-    $("maploading").hidden = false; $("maploading").textContent = "กำลังโหลดข้อมูลแม่น้ำ…";
+    $("maploading").hidden = false; $("maploading").textContent = "กำลังโหลดเส้นแม่น้ำ…";
     try {
-      const r = await fetch("https://flood-api.open-meteo.com/v1/flood?" + new URLSearchParams({ latitude: lats.join(","), longitude: lons.join(","), daily: "river_discharge,river_discharge_max", past_days: "60", forecast_days: "15" }));
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      let j = await r.json();
-      if (!Array.isArray(j)) j = [j];
+      const j = await overpass('[out:json][timeout:25];way["waterway"="river"](' + [s0, w0, n0, e0].map((v) => v.toFixed(3)).join(",") + ");out tags geom;");
+      if (seq !== riverSeq) return;
+      const ways = (j.elements || []).filter((w) => w.geometry && w.geometry.length > 1);
+      // sample points along every river, spaced so the whole view needs at most ~300 flow lookups
+      let total = 0;
+      ways.forEach((w) => { w.cum = [0]; for (let i = 1; i < w.geometry.length; i++) w.cum.push(w.cum[i - 1] + kmBetween(w.geometry[i - 1], w.geometry[i])); total += w.cum[w.cum.length - 1]; });
+      const D = Math.max(4, total / 300);
+      const samples = [];
+      ways.forEach((w) => {
+        const len = w.cum[w.cum.length - 1], n = Math.max(1, Math.round(len / D));
+        w.samples = [];
+        for (let k = 0; k < n; k++) {
+          const at = (k + 0.5) * len / n;
+          let i = 1; while (i < w.cum.length - 1 && w.cum[i] < at) i++;
+          const a = w.geometry[i - 1], b = w.geometry[i], f = (at - w.cum[i - 1]) / Math.max(1e-6, w.cum[i] - w.cum[i - 1]);
+          const p = { lat: a.lat + (b.lat - a.lat) * f, lon: a.lon + (b.lon - a.lon) * f };
+          p.key = p.lat.toFixed(3) + "," + p.lon.toFixed(3);
+          w.samples.push(p); samples.push(p);
+        }
+        w.step = len / n;
+      });
+      $("maploading").textContent = "กำลังโหลดปริมาณน้ำ…";
+      await flowAt(samples);
       if (seq !== riverSeq) return;
       riverAt = { b: pad, z: map.getZoom() };
       if (!riverLayer) riverLayer = L.layerGroup().addTo(map);
       riverLayer.clearLayers();
-      const seen = new Set();
-      j.forEach((loc, k) => {
-        const d = loc && loc.daily; if (!d || !d.river_discharge) return;
-        const q = d.river_discharge, qm = d.river_discharge_max || q, today = new Date().toLocaleDateString("sv-SE");
-        let ti = d.time.indexOf(today); if (ti < 0) ti = 60;
-        const past = q.slice(0, ti).filter((v) => v != null).sort((a, b) => a - b);
-        if (!past.length) return;
-        const med = past[Math.floor(past.length / 2)];
-        if (med < 3) return;                 // skip small streams and dry land
-        let peak = 0, peakAt = ti;
-        for (let i = ti; i < Math.min(qm.length, ti + 14); i++) if ((qm[i] || 0) > peak) { peak = qm[i]; peakAt = i; }
-        const ratio = peak / med;
-        const lat = loc.latitude != null ? loc.latitude : Number(lats[k]), lon = loc.longitude != null ? loc.longitude : Number(lons[k]);
-        const key = lat.toFixed(2) + "," + lon.toFixed(2); if (seen.has(key)) return; seen.add(key);
-        const lv = ratio >= 8 ? 3 : ratio >= 4 ? 2 : ratio >= 2 ? 1 : 0;
-        const col = lv ? LV_COL[lv] : "#5AB0FF";
-        const pd = parseLocal(d.time[peakAt]);
-        const m = L.circleMarker([lat, lon], { radius: Math.min(16, 5 + Math.log10(med + 1) * 3) + lv * 2, color: "#0B1220", weight: 2, fillColor: col, fillOpacity: lv ? 0.95 : 0.6, bubblingMouseEvents: false }).addTo(riverLayer);
-        m.bindPopup('<div class="rvpop"><b style="color:' + col + '">' + (lv ? "น้ำมากกว่าปกติ " + ratio.toFixed(1) + " เท่า" : "ระดับน้ำปกติ") + "</b>" +
-          "<span>สูงสุดราว " + Math.round(peak) + " ลบ.ม./วินาที ช่วง " + pd.d + " " + MON[pd.m - 1] + "</span><span>ตอนนี้ " + Math.round(q[ti] || 0) + " · ปกติ " + Math.round(med) + " ลบ.ม./วินาที</span>" +
-          '<button type="button" data-rv="' + lat + "," + lon + '">ดูความเสี่ยงน้ำท่วมจุดนี้</button></div>', { maxWidth: 240 , autoPanPaddingTopLeft: [16, 90], autoPanPaddingBottomRight: [16, 100] });
-        if (lv) m.bringToFront();
+      const top = [];
+      ways.forEach((w) => {
+        const name = (w.tags && (w.tags["name:th"] || w.tags.name)) || "แม่น้ำ";
+        // GloFAS cells can miss a river by one cell; borrow the nearest good reading on the same river
+        const vals = w.samples.map((p) => { const v = flowCache.get(p.key); return v && v.med >= 3 ? v : null; });
+        const filled = vals.map((v, k) => { if (v) return v; for (let d = 1; d < vals.length; d++) { if (vals[k - d]) return vals[k - d]; if (vals[k + d]) return vals[k + d]; } return null; });
+        let cur = -1, pts = [];
+        const flush = () => {
+          if (pts.length < 2) return;
+          const v = filled[cur], ratio = v ? v.peak / v.med : 0, lv = !v ? -1 : ratio >= 8 ? 3 : ratio >= 4 ? 2 : ratio >= 2 ? 1 : 0;
+          const col = lv > 0 ? LV_COL[lv] : "#5AB0FF", wt = lv < 0 ? 1.6 : lv === 0 ? 2.6 : 3 + lv;
+          L.polyline(pts, { renderer: riverRender, color: "#0B1220", weight: wt + 3, opacity: lv > 0 ? 0.55 : 0.3, interactive: false }).addTo(riverLayer);
+          const line = L.polyline(pts, { renderer: riverRender, color: col, weight: wt, opacity: lv < 0 ? 0.45 : 0.95, lineCap: "round", lineJoin: "round", bubblingMouseEvents: false }).addTo(riverLayer);
+          if (v) {
+            const mid = pts[Math.floor(pts.length / 2)], pd = parseLocal(v.peakDay);
+            line.bindPopup('<div class="rvpop"><span>' + name.replace(/[<>&"]/g, "") + '</span><b style="color:' + col + '">' + (lv > 0 ? "น้ำมากกว่าปกติ " + ratio.toFixed(1) + " เท่า" : "ระดับน้ำปกติ") + "</b>" +
+              "<span>สูงสุดราว " + Math.round(v.peak) + " ลบ.ม./วินาที ช่วง " + pd.d + " " + MON[pd.m - 1] + "</span><span>ตอนนี้ " + Math.round(v.now) + " · ปกติ " + Math.round(v.med) + " ลบ.ม./วินาที</span>" +
+              '<button type="button" data-rv="' + mid[0].toFixed(4) + "," + mid[1].toFixed(4) + '">ดูความเสี่ยงน้ำท่วมจุดนี้</button></div>', { maxWidth: 240, autoPanPaddingTopLeft: [16, 90], autoPanPaddingBottomRight: [16, 100] });
+            if (lv > 0) top.push(line);
+          }
+        };
+        w.geometry.forEach((g, i) => {
+          const k = Math.min(w.samples.length - 1, Math.floor(w.cum[i] / w.step));
+          if (k !== cur) { if (pts.length) { pts.push([g.lat, g.lon]); flush(); } cur = k; pts = [[g.lat, g.lon]]; } else pts.push([g.lat, g.lon]);
+        });
+        flush();
       });
+      top.forEach((l) => l.bringToFront());
+      $("river-note").innerHTML = 'เส้นแม่น้ำ สีตามน้ำสูงสุดใน 14 วันเทียบกับปกติ: <b style="color:#5AB0FF">━</b> ปกติ <b style="color:#FFC24A">━</b> 2 เท่า <b style="color:#FF8A4C">━</b> 4 เท่า <b style="color:#FF5A5F">━</b> 8 เท่าขึ้นไป · เส้นจาง = ไม่มีข้อมูลน้ำ';
     } catch (e) {
       $("river-note").textContent = "โหลดข้อมูลแม่น้ำไม่ได้ ลองใหม่ภายหลัง";
     } finally { if (seq === riverSeq) { $("maploading").hidden = true; $("maploading").textContent = "กำลังโหลดแผนที่…"; } }

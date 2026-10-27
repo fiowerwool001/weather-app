@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ฟ้าฝนวันนี้</title>
-<meta name="description" content="พยากรณ์ฝน อุณหภูมิ และลม ราย 3 ชั่วโมง ล่วงหน้า 16 วัน พร้อมแผนที่ฝนและเมฆ">
-<meta name="theme-color" content="#3a3d42">
+<meta name="description" content="พยากรณ์ฝน อุณหภูมิ และลม รายชั่วโมง ล่วงหน้า 16 วัน พร้อมแผนที่ฝน และเฝ้าระวังน้ำท่วม">
+<meta name="theme-color" content="#0B1220">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ฟ้าฝน">
@@ -13,379 +13,444 @@
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
-/* Layout: grey search bar, full-colour weather map, dark 16-day strip with temperature hills, light 3-hour table, red tool bar pinned to the bottom. */
+/* Night-sky theme: map on top, content in rounded sheets, tab bar at the bottom. Four views: today, forecast, flood, full map. */
 :root {
-  --chrome: #3a3d42;
-  --chrome-2: #4a4e54;
-  --chrome-3: #2f3236;
-  --chrome-ink: #f4f5f6;
-  --chrome-muted: #b9bec4;
-  --bar: #9b1c1c;
-  --bar-ink: #ffffff;
-  --accent: #b42318;
-  --bg: #ffffff;
-  --ink: #1f2328;
-  --muted: #8a9096;
-  --line: #e7e9ec;
-  --night: #eceaf6;
-  --rain: #2b6fcf;
-  --temp-fill: #f6dbe6;
-  --rain-fill: #cfe6f7;
-  --hill: #c9a9c9;
-  --sun: #f5b21c;
-  --cloud: #b7bcc2;
-  --cloud-2: #8b9298;
-  --bolt: #f5b21c;
-  --moon: #c9ced4;
-  --warn: #e07b16;
-  --font: "IBM Plex Sans Thai", system-ui, -apple-system, sans-serif;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #1d2024; --ink: #eef0f2; --muted: #9aa1a8; --line: #2e3237; --night: #26243a;
-    --rain: #74b3ff; --temp-fill: #4a2d3a; --rain-fill: #1f3a55; --cloud: #a5abb1; --cloud-2: #cfd3d7; --moon: #d5d9dd;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #1d2024; --ink: #eef0f2; --muted: #9aa1a8; --line: #2e3237; --night: #26243a;
-  --rain: #74b3ff; --temp-fill: #4a2d3a; --rain-fill: #1f3a55; --cloud: #a5abb1; --cloud-2: #cfd3d7; --moon: #d5d9dd;
+  --bg: #0B1220;
+  --bg-2: #111A2B;
+  --card: rgba(255,255,255,.05);
+  --line: rgba(255,255,255,.08);
+  --line-2: rgba(255,255,255,.14);
+  --glass: rgba(11,18,32,.74);
+  --ink: #EEF3FA;
+  --ink-2: #D5DEEA;
+  --muted: #93A3BA;
+  --blue: #5AB0FF;
+  --orange: #FF8A4C;
+  --yellow: #FFC24A;
+  --red: #FF5A5F;
+  --green: #4CD69A;
+  --violet: #B48CFF;
+  --sun: #FFC24A;
+  --moon: #D5DEEA;
+  --cloud: #C9D3E0;
+  --cloud-2: #8A9BB0;
+  --bolt: #FFC24A;
+  --ease: cubic-bezier(.2,.8,.2,1);
+  --font: "Noto Sans Thai", system-ui, -apple-system, sans-serif;
+  --head: "Prompt", "Noto Sans Thai", system-ui, sans-serif;
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
   color-scheme: dark;
 }
-* { box-sizing: border-box; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 [hidden] { display: none !important; }
 html, body { margin: 0; }
-body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--font); -webkit-text-size-adjust: 100%; padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font); -webkit-text-size-adjust: 100%; padding-bottom: calc(84px + var(--safe-b)); min-height: 100vh; }
 button, input, select { font: inherit; color: inherit; }
-button { cursor: pointer; }
-:focus-visible { outline: 2px solid #4da3ff; outline-offset: 2px; }
+button { cursor: pointer; transition: transform .15s var(--ease), background .2s, border-color .2s, color .2s; }
+button:active { transform: scale(.96); }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+a { color: var(--blue); }
 .tnum { font-variant-numeric: tabular-nums; }
+h1, h2, h3 { font-family: var(--head); font-weight: 600; margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: .8rem; margin: 0; }
+.wrap { max-width: 720px; margin: 0 auto; padding: 0 16px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; }
+.glass { background: var(--glass); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 1px solid var(--line-2); }
 
-/* ---------- search bar ---------- */
-.top { position: sticky; top: 0; z-index: 1000; background: var(--chrome); color: var(--chrome-ink);
-  padding: calc(env(safe-area-inset-top, 0px) + 8px) max(14px, env(safe-area-inset-right, 0px)) 8px max(14px, env(safe-area-inset-left, 0px)); }
-.searchrow { display: flex; align-items: center; gap: 6px; max-width: 1100px; margin: 0 auto; }
-.search { flex: 1; min-width: 0; position: relative; }
-.search input { width: 100%; background: transparent; border: 0; border-bottom: 1px solid #6a6f75; color: var(--chrome-ink); font-size: 1.6rem; font-weight: 500; padding: 4px 4px 6px 40px; }
-.search input::placeholder { color: var(--chrome-muted); font-size: 1.2rem; }
-.search > svg { position: absolute; left: 2px; top: 50%; transform: translateY(-50%); }
-.iconbtn { background: none; border: 0; padding: 6px; display: grid; place-items: center; color: var(--chrome-ink); border-radius: 10px; }
-.iconbtn:hover { background: var(--chrome-2); }
-.iconbtn[aria-pressed="true"] svg path { fill: #e5484d; stroke: #e5484d; }
-.results { position: absolute; left: 0; right: 0; top: calc(100% + 6px); background: var(--bg); color: var(--ink); border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,.3); max-height: 60vh; overflow: auto; z-index: 1100; }
-.results button { display: block; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 11px 14px; }
-.results button:hover, .results button:focus-visible { background: var(--line); }
-.results small { display: block; color: var(--muted); }
-.results .label { padding: 8px 14px 4px; font-size: .75rem; color: var(--muted); }
-.results .msg { padding: 12px 14px; color: var(--muted); }
+/* ---------- views ---------- */
+.view { display: none; }
+body[data-view="today"] .v-today, body[data-view="forecast"] .v-forecast, body[data-view="flood"] .v-flood { display: block; animation: viewin .38s var(--ease); }
+@keyframes viewin { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .view, .sheet, .needle { animation: none !important; transition: none !important; } }
 
 /* ---------- map ---------- */
-.mapwrap { position: relative; }
-#map { height: 46vh; min-height: 280px; max-height: 520px; background: #233a52; }
-.fullbtn { position: absolute; top: 10px; right: max(10px, env(safe-area-inset-right, 0px)); z-index: 600; width: 40px; height: 40px; border-radius: 12px; border: 0; background: rgba(30,32,36,.82); color: #fff; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
-body.mapfull { overflow: hidden; }
-body.mapfull .mapwrap { position: fixed; inset: 0; z-index: 1100; background: #233a52; }
-body.mapfull #map { height: 100%; max-height: none; }
-body.mapfull .layerbtn, body.mapfull .fullbtn { top: calc(env(safe-area-inset-top, 0px) + 10px); }
-body.mapfull .scale { top: calc(env(safe-area-inset-top, 0px) + 60px); }
-body.mapfull .timebar { padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
-body.mapfull .chips { bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
-body.mapfull .leaflet-top.leaflet-right { top: calc(env(safe-area-inset-top, 0px) + 54px); }
-.chip .badge.flood { background: #2f6db5; color: #fff; }
-.chip .badge.flood.lv1 { background: #c48a2c; } .chip .badge.flood.lv2 { background: #d0561f; } .chip .badge.flood.lv3 { background: #b42318; }
-/* flood watch */
-:root { --fl0: #9cc8ec; --fl1: #3d8fd6; --fl2: #e08a1e; --fl3: #c0352b; }
-.flood { margin: 10px max(12px, env(safe-area-inset-left, 0px)) 6px; border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 10px; background: var(--bg); }
-.flood { scroll-margin-top: 70px; }
-.flood > * { min-width: 0; }
-.flood-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.flood-head h2 { margin: 0; font-size: 1.15rem; font-weight: 600; }
-.risk { border-radius: 999px; padding: 2px 12px; font-size: .9rem; font-weight: 600; color: #fff; background: #3b8a5a; }
-.risk.lv1 { background: #c48a2c; } .risk.lv2 { background: #d0561f; } .risk.lv3 { background: #b42318; }
-.ftip { margin: 0; font-weight: 500; }
-.fwhy { margin: 0; padding-left: 1.1em; display: grid; gap: 3px; font-size: .9rem; overflow-wrap: anywhere; }
-.fwhy li.lv2, .fwhy li.lv3 { color: #c2410c; }
-.ftiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.ftile { border-radius: 10px; background: color-mix(in srgb, var(--rain-fill) 55%, var(--bg)); padding: 8px 10px; display: grid; gap: 2px; min-width: 0; }
-.ftile span { font-size: .75rem; color: var(--muted); }
-.ftile b { font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; }
-.ftile b small { font-size: .7rem; font-weight: 400; color: var(--muted); }
-.ftile.hot { background: color-mix(in srgb, #e08a1e 22%, var(--bg)); }
-.fsub { font-size: .9rem; font-weight: 500; }
-.fchart { overflow-x: auto; }
-.fchart svg { display: block; width: 100%; height: auto; }
-.fchart text { font-size: 11px; fill: var(--muted); font-family: var(--font); }
-.fchart text.today { fill: var(--accent); font-weight: 600; }
-.fchart text.bv { fill: var(--ink); font-size: 10px; }
-.fchart text.thl { fill: #c2410c; font-size: 10px; }
-.fchart text.side { font-size: 10px; }
-.fchart .gl { stroke: var(--line); }
-.fchart .th { stroke: #e0a070; stroke-dasharray: 4 3; }
-.fchart .nowl { stroke: var(--accent); stroke-dasharray: 3 3; }
-.fchart .rpast { fill: none; stroke: #6b8fb8; stroke-width: 2; }
-.fchart .rfut { fill: none; stroke: var(--rain); stroke-width: 2.5; }
-.fchart .rmax { fill: none; stroke: #e08a1e; stroke-width: 1.5; stroke-dasharray: 5 3; }
-.flegend { display: flex; gap: 14px; font-size: .75rem; color: var(--muted); flex-wrap: wrap; }
-.flegend i { display: inline-block; width: 16px; height: 3px; vertical-align: middle; margin-right: 5px; }
-.flegend .lp { background: #6b8fb8; } .flegend .lf { background: var(--rain); } .flegend .lm { background: #e08a1e; }
-.muted { color: var(--muted); }
-.small { font-size: .78rem; margin: 0; }
-.flood a { color: inherit; }
-.leaflet-container { font-family: var(--font); }
-.basemap { filter: saturate(.45) brightness(1.03) contrast(.95); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .basemap { filter: saturate(.35) brightness(.72) contrast(1.1); } }
-.layerbtn { position: absolute; top: 10px; left: max(10px, env(safe-area-inset-left, 0px)); z-index: 500; display: flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; padding: 4px 14px 4px 4px; font-size: .9rem; font-weight: 500; background: rgba(30,32,36,.82); color: #fff; backdrop-filter: blur(4px); box-shadow: 0 2px 8px rgba(0,0,0,.3); }
-.layerbtn .ic { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); display: grid; place-items: center; }
+.mapwrap { position: relative; display: none; }
+body[data-view="today"] .mapwrap, body[data-view="map"] .mapwrap { display: block; }
+#map { height: 52vh; min-height: 330px; max-height: 560px; background: #15283F; }
+body[data-view="map"] { overflow: hidden; padding-bottom: 0; }
+body[data-view="map"] .mapwrap { position: fixed; inset: 0; z-index: 50; background: #15283F; animation: viewin .3s var(--ease); }
+body[data-view="map"] #map { height: 100%; max-height: none; }
+.leaflet-container { font-family: var(--font); background: #15283F; }
+.basemap { filter: brightness(.6) saturate(.4) contrast(1.15); }
 canvas.particles { position: absolute; left: 0; top: 0; z-index: 420; pointer-events: none; }
-.slwrap { flex: 1; min-width: 0; position: relative; display: flex; }
-.slwrap input { width: 100%; }
-.tnow { position: absolute; top: -6px; width: 2px; height: 8px; background: #fff; transform: translateX(-1px); pointer-events: none; }
-.scrim { position: fixed; inset: 0; z-index: 1190; background: rgba(0,0,0,.35); }
-.drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 1200; width: min(380px, 86vw); background: #3b3e43; color: #f2f3f4; overflow-y: auto;
-  padding: calc(env(safe-area-inset-top, 0px) + 14px) max(16px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) 16px;
-  transform: translateX(100%); transition: transform .22s ease; display: grid; gap: 16px; align-content: start; }
-.drawer.open { transform: none; }
-.drawer-head { display: flex; justify-content: space-between; align-items: center; }
-.drawer-head h2 { margin: 0; font-size: 1.15rem; font-weight: 600; }
-.xbtn { width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--accent); color: #fff; font-size: 1.1rem; }
-.lgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 10px; }
-.lcard { background: none; border: 0; color: inherit; padding: 0; display: grid; gap: 6px; text-align: left; font-size: .86rem; line-height: 1.25; }
-.lcard .th { aspect-ratio: 4 / 3; border-radius: 10px; display: grid; place-items: center; border: 3px solid transparent; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.leaflet-control-attribution { background: rgba(11,18,32,.7) !important; color: var(--muted) !important; font-size: 10px; border-radius: 8px 0 0 8px; }
+.leaflet-control-attribution a { color: var(--ink-2) !important; }
+body:not([data-view="map"]) .leaflet-control-attribution { display: none; }
+body[data-view="map"] .leaflet-top.leaflet-right { top: calc(var(--safe-t) + 64px); }
+
+/* overlays shown on the small map (today) or the full map */
+.only-today, .only-map { display: none !important; }
+body[data-view="today"] .only-today { display: flex !important; }
+body[data-view="map"] .only-map { display: flex !important; }
+
+.searchbar { position: absolute; z-index: 600; left: 16px; right: 16px; top: calc(var(--safe-t) + 14px); gap: 10px; align-items: center; max-width: 688px; margin: 0 auto; }
+.search { flex: 1; min-width: 0; height: 50px; border-radius: 25px; display: flex; align-items: center; gap: 10px; padding: 0 16px; position: relative; }
+.search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font-family: var(--head); font-size: 17px; font-weight: 500; outline: none; }
+.search input::placeholder { color: var(--muted); font-weight: 400; font-size: 15px; }
+.search input::-webkit-search-cancel-button { display: none; }
+.roundbtn { width: 50px; height: 50px; border-radius: 25px; display: grid; place-items: center; flex: none; color: var(--ink); padding: 0; }
+.roundbtn.sm { width: 44px; height: 44px; border-radius: 22px; }
+.results { position: absolute; left: 0; right: 0; top: calc(100% + 8px); background: #16213A; border: 1px solid var(--line-2); border-radius: 18px; box-shadow: 0 18px 40px rgba(0,0,0,.5); max-height: 60vh; overflow: auto; z-index: 1100; padding: 6px; }
+.results button { display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 12px; padding: 10px 12px; }
+.results button:hover, .results button:focus-visible { background: rgba(255,255,255,.07); }
+.results small { display: block; color: var(--muted); }
+.results .label { padding: 8px 12px 2px; font-size: .75rem; color: var(--muted); }
+.results .msg { padding: 12px; color: var(--muted); }
+
+.chips { position: absolute; z-index: 500; left: 16px; top: calc(var(--safe-t) + 76px); flex-direction: column; gap: 8px; align-items: flex-start; }
+.chip { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px 0 6px; border-radius: 18px; border: 0; font-size: 13.5px; font-weight: 500; color: #1A1206; box-shadow: 0 6px 18px rgba(0,0,0,.35); animation: viewin .4s var(--ease); }
+.chip .dot { width: 26px; height: 26px; border-radius: 13px; background: rgba(0,0,0,.18); display: grid; place-items: center; }
+.chip.warn { background: var(--orange); }
+.chip.flood { background: var(--yellow); }
+.chip.flood.lv2 { background: var(--orange); } .chip.flood.lv3 { background: var(--red); color: #fff; }
+.mapbtns { position: absolute; z-index: 500; right: 16px; top: calc(var(--safe-t) + 76px); flex-direction: column; gap: 8px; }
+
+.maptop { position: absolute; z-index: 600; left: 16px; right: 16px; top: calc(var(--safe-t) + 12px); gap: 10px; align-items: center; }
+.layerpill { flex: 1; min-width: 0; height: 44px; border-radius: 22px; display: flex; align-items: center; gap: 10px; padding: 0 14px 0 5px; color: var(--ink); text-align: left; }
+.layerpill .ic { width: 34px; height: 34px; border-radius: 17px; background: var(--blue); display: grid; place-items: center; flex: none; }
+.layerpill .nm { font-family: var(--head); font-weight: 500; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.layerpill .pl { margin-left: auto; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40%; }
+.scale { position: absolute; z-index: 500; right: 16px; top: calc(var(--safe-t) + 112px); flex-direction: column; align-items: flex-end; gap: 4px; font-size: 10.5px; color: var(--ink-2); text-shadow: 0 1px 2px #000; }
+.scale .row { display: flex; gap: 6px; }
+.scale .bar { width: 14px; height: 140px; border-radius: 7px; border: 2px solid rgba(11,18,32,.7); }
+.scale .ends { display: flex; flex-direction: column; justify-content: space-between; height: 140px; text-align: right; }
+.maploading { position: absolute; z-index: 500; left: 50%; transform: translateX(-50%); top: calc(var(--safe-t) + 70px); background: var(--glass); border: 1px solid var(--line-2); border-radius: 999px; padding: 4px 14px; font-size: 12.5px; }
+body[data-view="today"] .maploading { top: auto; bottom: 44px; }
+
+.timebar { position: absolute; z-index: 600; left: 16px; right: 16px; bottom: calc(var(--safe-b) + 16px); height: 64px; border-radius: 22px; align-items: center; gap: 12px; padding: 0 16px 0 10px; max-width: 688px; margin: 0 auto; }
+.playbtn { width: 44px; height: 44px; border-radius: 22px; border: 0; background: var(--blue); color: var(--bg); display: grid; place-items: center; flex: none; box-shadow: 0 4px 14px rgba(90,176,255,.4); }
+.tcol { flex: 1; min-width: 0; }
+.tlabel { font-family: var(--head); font-weight: 600; font-size: 13.5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.slwrap { position: relative; display: block; }
+.tnow { position: absolute; top: 4px; width: 2px; height: 20px; background: rgba(255,255,255,.7); transform: translateX(-1px); pointer-events: none; border-radius: 1px; }
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; margin: 0; display: block; }
+input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--blue) var(--p, 0%), rgba(255,255,255,.18) var(--p, 0%)); }
+input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: rgba(255,255,255,.18); }
+input[type=range]::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--blue); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #fff; margin-top: -8px; box-shadow: 0 2px 8px rgba(0,0,0,.45); }
+input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.45); }
+
+/* layer bottom sheet */
+.scrim { position: fixed; inset: 0; z-index: 1190; background: rgba(0,0,0,.4); opacity: 0; transition: opacity .25s; }
+.scrim.open { opacity: 1; }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1200; max-width: 720px; margin: 0 auto; max-height: 86vh; overflow-y: auto; background: rgba(17,26,43,.98); border-top: 1px solid var(--line-2); border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px rgba(0,0,0,.5); padding: 10px 16px calc(20px + var(--safe-b)); transform: translateY(105%); transition: transform .32s var(--ease); }
+.sheet.open { transform: none; }
+.handle { width: 40px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.25); margin: 0 auto 12px; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.sheet-head h2 { font-size: 18px; }
+.xbtn { width: 36px; height: 36px; border-radius: 18px; border: 0; background: rgba(255,255,255,.08); display: grid; place-items: center; color: var(--ink); }
+.lgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.lcard { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px 4px 8px; border-radius: 16px; background: rgba(255,255,255,.04); border: 1.5px solid var(--line); font-size: 12px; color: var(--ink-2); line-height: 1.25; text-align: center; }
+.lcard .th { width: 100%; aspect-ratio: 5 / 4; border-radius: 12px; display: grid; place-items: center; }
 .lcard .th svg { filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
-.lcard[aria-pressed="true"] .th { border-color: #e9c46a; }
-.lcard[aria-pressed="true"] { color: #e9c46a; }
-.dsec { background: #4d4b63; border-radius: 12px; padding: 12px 14px; display: grid; gap: 10px; }
-.dlabel { font-size: .85rem; letter-spacing: .04em; opacity: .8; }
-.tgl { display: flex; align-items: center; gap: 12px; font-size: 1rem; cursor: pointer; }
+.lcard[aria-pressed="true"] { background: rgba(90,176,255,.16); border-color: var(--blue); color: var(--blue); font-weight: 600; }
+.tgl { margin-top: 14px; min-height: 52px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); display: flex; align-items: center; gap: 12px; padding: 0 14px; cursor: pointer; font-size: 14px; }
 .tgl input { position: absolute; opacity: 0; }
-.tgl .sw { width: 44px; height: 26px; border-radius: 13px; border: 2px solid #ddd; position: relative; flex: none; transition: background .15s; }
-.tgl .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #ddd; transition: transform .15s; }
-.tgl input:checked + .sw { background: #e9c46a; border-color: #e9c46a; }
-.tgl input:checked + .sw::after { transform: translateX(18px); background: #fff; }
-.tgl input:focus-visible + .sw { outline: 2px solid #4da3ff; outline-offset: 2px; }
-.dnote { margin: 0; font-size: .78rem; opacity: .7; }
-.chips { position: absolute; left: max(12px, env(safe-area-inset-left, 0px)); bottom: 64px; z-index: 500; display: grid; gap: 10px; }
-.chip { display: flex; align-items: center; gap: 12px; color: #fff; font-size: 1rem; font-weight: 500; text-shadow: 0 1px 3px rgba(0,0,0,.7); background: none; border: 0; padding: 0; text-align: left; }
-.chip .badge { width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,.35); text-shadow: none; flex: none; }
-.chip .badge.warn { background: #c48a2c; }
-.chip .badge.now { background: #f2a582; color: #1f2328; display: grid; grid-template-rows: 1fr auto; overflow: hidden; padding: 0; }
-.chip .badge.now b { font-size: 1.25rem; font-weight: 600; align-self: center; }
-.chip .badge.now small { background: #c9c7f2; width: 100%; text-align: center; font-size: .66rem; line-height: 1.5; }
-.timebar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 500; display: flex; align-items: center; gap: 10px; padding: 8px max(12px, env(safe-area-inset-right, 0px)) 10px max(12px, env(safe-area-inset-left, 0px)); background: linear-gradient(transparent, rgba(0,0,0,.55)); color: #fff; }
-.timebar button { width: 34px; height: 34px; border-radius: 50%; border: 0; background: #fff; color: #222; display: grid; place-items: center; flex: none; }
-.timebar input { flex: 1; min-width: 0; accent-color: #e5484d; }
-.timebar .tl { font-size: .82rem; white-space: nowrap; min-width: 92px; text-align: right; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
-.scale { position: absolute; right: max(10px, env(safe-area-inset-right, 0px)); top: 54px; z-index: 500; display: grid; gap: 2px; font-size: .66rem; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.8); }
-.scale .bar { width: 10px; height: 110px; border-radius: 5px; justify-self: end; }
-.scale .ends { display: flex; flex-direction: column; justify-content: space-between; height: 110px; position: absolute; right: 16px; top: 16px; text-align: right; }
-.maploading { position: absolute; top: 46px; left: 50%; transform: translateX(-50%); z-index: 500; background: rgba(30,32,36,.8); color: #fff; border-radius: 999px; padding: 3px 12px; font-size: .78rem; }
+.tgl .sw { margin-left: auto; width: 46px; height: 28px; border-radius: 14px; background: rgba(255,255,255,.16); position: relative; flex: none; transition: background .2s; }
+.tgl .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .25s var(--ease); }
+.tgl input:checked + .sw { background: var(--blue); }
+.tgl input:checked + .sw::after { transform: translateX(18px); }
+.tgl input:focus-visible + .sw { outline: 2px solid var(--blue); outline-offset: 2px; }
+.dnote { margin: 12px 2px 0; font-size: 12px; color: var(--muted); }
 
-/* ---------- day strip ---------- */
-.days { background: var(--chrome); color: var(--chrome-ink); position: relative; }
-.days-scroll { overflow-x: auto; scrollbar-width: none; }
-.days-scroll::-webkit-scrollbar { display: none; }
-.days-track { position: relative; }
-.days-track svg.hills { position: absolute; left: 0; top: 0; pointer-events: none; }
-.days-row { display: flex; position: relative; }
-.day { flex: 0 0 var(--dw); width: var(--dw); background: none; border: 0; border-right: 1px solid #55595f; color: inherit; height: 150px; display: grid; grid-template-rows: auto 1fr auto; justify-items: center; padding: 10px 2px 12px; position: relative; }
-.day .dn { font-size: .95rem; color: var(--chrome-ink); }
-.day .dn small { display: block; font-size: .7rem; color: var(--chrome-muted); text-align: center; }
-.day .ic { align-self: center; filter: drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
-.day .tt { font-size: 1.05rem; white-space: nowrap; }
-.day .tt b { font-weight: 600; font-size: 1.15rem; }
-.day[aria-selected="true"] { background: rgba(255,255,255,.07); }
-.sel-rail { height: 22px; position: relative; background: #e9eaec; margin: 0 6px; border-radius: 11px; }
-.sel-rail .knob { position: absolute; top: 2px; bottom: 2px; border: 3px solid var(--accent); border-radius: 11px; background: #fff; transition: left .2s; }
-.drops { display: flex; height: 34px; align-items: center; }
-.drops span { flex: 0 0 var(--dw); text-align: center; color: #dfe3e8; letter-spacing: -2px; font-size: .9rem; }
-.drops span svg { margin: 0 1px; }
-.fc-link { position: absolute; right: 0; bottom: 0; background: var(--accent); color: #fff; border: 0; border-radius: 16px 0 0 0; padding: 8px 16px; font-size: .9rem; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+/* ---------- today ---------- */
+.v-today { position: relative; z-index: 10; margin-top: -28px; background: var(--bg); border-radius: 28px 28px 0 0; padding-top: 10px; box-shadow: 0 -10px 30px rgba(0,0,0,.35); }
+.now { display: flex; align-items: center; gap: 12px; padding: 4px 0 10px; }
+.now .lbl { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.now .tp { font-family: var(--head); font-weight: 500; font-size: 64px; line-height: 1; letter-spacing: -2px; }
+.now .cd { font-family: var(--head); font-size: 18px; font-weight: 500; }
+.now .sub { font-size: 13px; color: var(--muted); }
+.now .big { margin-left: auto; flex: none; animation: floaty 5s ease-in-out infinite; }
+@keyframes floaty { 50% { transform: translateY(-5px); } }
+.favbtn { border: 0; background: none; padding: 2px; color: var(--muted); display: grid; place-items: center; }
+.favbtn[aria-pressed="true"] { color: var(--red); }
+.favbtn[aria-pressed="true"] path { fill: currentColor; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.stat { border-radius: 18px; padding: 10px 12px; background: var(--card); border: 1px solid var(--line); min-width: 0; }
+.stat span { display: block; font-size: 11.5px; color: var(--muted); }
+.stat b { font-family: var(--head); font-size: 22px; font-weight: 600; }
+.stat b small { font-size: 12px; font-weight: 400; color: var(--muted); }
+.alert { margin-top: 12px; width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; padding: 12px 14px; border-radius: 18px; border: 1px solid; }
+.alert.warn { background: rgba(255,138,76,.13); border-color: rgba(255,138,76,.4); }
+.alert .ai { width: 40px; height: 40px; border-radius: 20px; display: grid; place-items: center; flex: none; }
+.alert b { display: block; font-family: var(--head); font-weight: 600; }
+.alert span { font-size: 13px; color: var(--ink-2); }
+.alert .chev { margin-left: auto; flex: none; color: var(--muted); }
+.sec-h { display: flex; align-items: baseline; justify-content: space-between; margin: 20px 0 10px; }
+.sec-h h2 { font-size: 16px; font-weight: 500; }
+.linkbtn { border: 0; background: none; color: var(--blue); font-size: 13px; padding: 4px 0; }
+.week { padding: 4px 14px; }
+.wrow { width: 100%; display: grid; grid-template-columns: 52px 38px 54px 32px minmax(0, 1fr) 32px; align-items: center; gap: 8px; padding: 9px 0; border: 0; border-bottom: 1px solid var(--line); background: none; text-align: left; }
+.wrow:last-child { border-bottom: 0; }
+.wrow .dn { font-family: var(--head); font-weight: 500; }
+.wrow .rn { font-size: 12px; color: var(--blue); white-space: nowrap; }
+.wrow .lo { color: var(--muted); text-align: right; }
+.wrow .hi { font-weight: 600; }
+.tbar { position: relative; height: 6px; border-radius: 3px; background: rgba(255,255,255,.08); }
+.tbar i { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: linear-gradient(90deg, var(--blue), var(--yellow)); }
+.status { font-size: 12.5px; color: var(--muted); padding: 12px 2px 0; }
+.status.err { color: var(--red); }
 
-/* ---------- table ---------- */
-main { max-width: 1100px; margin: 0 auto; }
-.tablebox { position: relative; overflow-x: auto; background: var(--bg); }
-.tablebox svg.bgwave { position: absolute; top: 0; pointer-events: none; z-index: 0; }
-table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width: 100%; }
-.fc th { position: sticky; left: 0; z-index: 3; background: var(--bg); text-align: right; font-weight: 400; color: var(--muted); font-size: .9rem; padding: 0 8px 0 10px; white-space: nowrap; height: 46px; }
-.fc th .u { display: inline-block; min-width: 46px; text-align: center; color: var(--ink); text-decoration: underline dotted; text-underline-offset: 3px; margin-left: 6px; font-size: .9rem; }
-.fc td { text-align: center; min-width: 58px; padding: 0 2px; height: 46px; font-variant-numeric: tabular-nums; white-space: nowrap; position: relative; }
-.fc td.nt { background: color-mix(in srgb, var(--night) 75%, transparent); }
-.dayhead { padding: 12px max(16px, env(safe-area-inset-left, 0px)) 4px; font-size: 1.2rem; font-weight: 500; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
-.dayhead .acc { font-size: .8rem; font-weight: 500; padding: 1px 10px 1px 2px; border-radius: 999px; background: var(--line); color: var(--ink); }
-.dayhead .acc b { display: inline-block; background: #d4a72c; color: #fff; border-radius: 999px; padding: 0 8px; margin-right: 6px; }
-.dayhead .sum { flex-basis: 100%; font-size: .85rem; font-weight: 400; color: var(--muted); }
-.fc tr.hour td { color: var(--muted); font-size: 1.35rem; font-weight: 400; }
-.fc tr.icon td { height: 60px; }
-.fc tr.temp td { font-size: 1.5rem; font-weight: 500; }
-.fc tr.feels td { color: var(--muted); font-size: 1.15rem; }
-.fc tr.rain td { color: var(--rain); font-size: 1.15rem; font-weight: 500; }
-.fc tr.wind td { font-size: 1.4rem; }
-.fc tr.gust td { font-size: .95rem; }
-.fc tr.gust td .g { position: absolute; inset: 9px 0; display: grid; place-items: center; }
-.fc tr.warnrow td { height: 40px; }
-.fc .warnband { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--warn); }
-.fc .warntext { position: absolute; left: 4px; top: 8px; font-size: .88rem; color: var(--muted); white-space: nowrap; z-index: 2; display: flex; align-items: center; gap: 4px; }
-.fc td.now::before { content: ""; position: absolute; inset: 0; border-left: 3px solid #f0c9c6; border-right: 3px solid #f0c9c6; pointer-events: none; }
-.fc tr.hour td.now::before { border-top: 3px solid #f0c9c6; border-radius: 10px 10px 0 0; }
-.fc tr:last-child td.now::before { border-bottom: 3px solid #f0c9c6; border-radius: 0 0 10px 10px; }
-.fc td.now::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; border-left: 2px dashed #f0b4b0; z-index: -1; }
-.fc tr.hour td.now { color: var(--muted); }
-.arrow { display: inline-block; }
-.note { padding: 10px max(16px, env(safe-area-inset-left, 0px)); font-size: .78rem; color: var(--muted); display: grid; gap: 4px; }
+/* ---------- forecast ---------- */
+.vhead { padding: calc(var(--safe-t) + 16px) 0 10px; display: flex; align-items: center; gap: 10px; }
+.vhead .tt { flex: 1; min-width: 0; }
+.vhead h1 { font-size: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vhead .st { font-size: 12.5px; color: var(--muted); }
+.vhead .placebtn { border: 0; background: none; padding: 0; text-align: left; max-width: 100%; }
+.iconbtn { width: 40px; height: 40px; border-radius: 20px; border: 0; background: rgba(255,255,255,.08); display: grid; place-items: center; color: var(--ink); flex: none; }
+.ctrls { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+.seg { display: inline-flex; padding: 3px; border-radius: 14px; background: rgba(255,255,255,.07); }
+.seg button { border: 0; background: none; border-radius: 11px; padding: 5px 12px; font-size: 13px; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); font-weight: 600; }
+.selpill { position: relative; display: inline-flex; align-items: center; }
+.selpill select { appearance: none; -webkit-appearance: none; border: 0; border-radius: 14px; background: rgba(255,255,255,.07); padding: 7px 30px 7px 12px; font-size: 13px; }
+.selpill select option { color: #111; }
+.selpill svg { position: absolute; right: 10px; pointer-events: none; }
+.dchips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 2px 16px 10px; scroll-snap-type: x proximity; }
+.dchips::-webkit-scrollbar { display: none; }
+.dchip { flex: none; width: 66px; border-radius: 18px; border: 1px solid var(--line); background: var(--card); padding: 8px 4px; display: flex; flex-direction: column; align-items: center; gap: 1px; scroll-snap-align: center; }
+.dchip .dn { font-family: var(--head); font-weight: 500; font-size: 13.5px; }
+.dchip .dd { font-size: 11px; color: var(--muted); }
+.dchip .t { font-size: 12.5px; white-space: nowrap; }
+.dchip .t b { font-weight: 600; }
+.dchip .r { font-size: 10.5px; color: var(--blue); min-height: 16px; }
+.dchip[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.dchip[aria-selected="true"] .dd, .dchip[aria-selected="true"] .r { color: #2B4A6E; }
+.daysum { font-size: 13.5px; color: var(--ink-2); margin: 2px 0 12px; }
+.daysum b { font-family: var(--head); font-weight: 600; color: var(--ink); font-size: 16px; }
+.meteo { padding: 12px 10px 8px; }
+.meteo-h { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 0 4px 4px; font-size: 13px; }
+.meteo-h .ttl { font-family: var(--head); font-weight: 500; }
+.pill-warn { background: rgba(255,138,76,.18); color: #FFB48A; border-radius: 999px; padding: 2px 10px; font-size: 12px; white-space: nowrap; }
+.meteo svg { display: block; width: 100%; height: auto; }
+.meteo text { font-family: var(--font); }
+.legend { display: flex; gap: 14px; font-size: 11.5px; color: var(--muted); padding: 2px 4px 0; }
+.legend i { display: inline-block; width: 14px; height: 4px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+.hours { margin-top: 12px; padding: 4px 0; overflow: hidden; }
+.hrow { display: grid; grid-template-columns: 46px 36px minmax(0, 1fr) 54px 50px 42px; align-items: center; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--line); position: relative; }
+.hrow:last-child { border-bottom: 0; }
+.hrow.head { font-size: 11px; color: var(--muted); padding-top: 6px; padding-bottom: 6px; }
+.hrow.night { background: rgba(120,110,255,.05); }
+.hrow.now { box-shadow: inset 0 0 0 2px var(--orange); border-radius: 14px; background: rgba(255,138,76,.08); }
+.hrow.risk::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: var(--orange); }
+.h-time { font-family: var(--head); font-weight: 500; font-size: 14px; }
+.h-time em { display: block; font-style: normal; font-size: 10px; color: var(--orange); font-family: var(--font); font-weight: 500; line-height: 1.2; }
+.h-temp b { font-family: var(--head); font-size: 18px; font-weight: 600; }
+.h-temp { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.h-temp small { color: var(--muted); font-size: 12px; }
+.h-rain { color: var(--blue); font-size: 13.5px; font-weight: 500; white-space: nowrap; }
+.h-rain small { display: block; color: var(--muted); font-size: 11px; font-weight: 400; }
+.h-wind { display: flex; align-items: center; gap: 4px; font-size: 13.5px; white-space: nowrap; }
+.h-wind .arrow { display: inline-grid; transition: transform .4s var(--ease); }
+.h-gust { justify-self: end; min-width: 38px; text-align: center; border-radius: 999px; padding: 2px 6px; font-size: 12.5px; font-weight: 600; background: rgba(255,255,255,.06); color: var(--ink-2); }
+.note { padding: 14px 2px 4px; font-size: 12px; color: var(--muted); display: grid; gap: 6px; }
 .note a { color: inherit; }
-.status { font-size: .85rem; color: var(--muted); padding: 6px max(16px, env(safe-area-inset-left, 0px)) 0; }
-.status.err { color: var(--accent); }
-.skeleton { height: 420px; background: linear-gradient(90deg, var(--bg), var(--line), var(--bg)); background-size: 200% 100%; }
-@media (prefers-reduced-motion: no-preference) { .skeleton { animation: sh 1.4s linear infinite; } }
+.note.fn { display: block; margin: 0; line-height: 1.7; }
+.skeleton { height: 360px; border-radius: 20px; background: linear-gradient(90deg, rgba(255,255,255,.03), rgba(255,255,255,.08), rgba(255,255,255,.03)); background-size: 200% 100%; animation: sh 1.4s linear infinite; }
 @keyframes sh { to { background-position: -200% 0; } }
 
-/* ---------- bottom bar ---------- */
-.bottombar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000; background: var(--bar); color: var(--bar-ink);
-  display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center;
-  padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
-.bb { display: flex; align-items: center; gap: 10px; min-width: 0; position: relative; }
-.bb .lbl { font-size: .72rem; opacity: .85; line-height: 1.1; }
-.bb select { appearance: none; -webkit-appearance: none; background: transparent; border: 0; color: #fff; font-size: 1.15rem; font-weight: 500; padding: 0 22px 0 0; max-width: 100%; }
-.bb select option { color: #1f2328; }
-.bb .chev { position: absolute; right: 0; bottom: 6px; pointer-events: none; }
-.bb .stack { display: grid; min-width: 0; position: relative; }
-.sharebtn { background: none; border: 0; color: #fff; padding: 6px; }
-@media (max-width: 520px) {
-  .search input { font-size: 1.4rem; }
-  .fc th { font-size: .7rem; padding: 0 2px 0 8px; }
-  .fc th .u { min-width: 26px; font-size: .7rem; margin-left: 2px; }
-  .fc td { min-width: 34px; padding: 0 1px; }
-  .fc tr.hour td { font-size: 1rem; }
-  .fc tr.icon td { height: 48px; }
-  .fc tr.icon svg { width: 34px; height: 34px; }
-  .fc tr.temp td { font-size: 1.05rem; }
-  .fc tr.feels td, .fc tr.rain td { font-size: .85rem; }
-  .fc tr.wind td { font-size: 1rem; }
-  .fc tr.gust td { font-size: .8rem; }
-  .fc tr.dir svg { width: 18px; height: 20px; }
-  .fc .warntext { font-size: .72rem; }
-  .day .tt { font-size: .92rem; }
-  .day .tt b { font-size: 1rem; }
-  .bb select { font-size: 1rem; }
+/* ---------- flood ---------- */
+.fl-gauge { --lv: var(--green); display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 24px; border: 1px solid color-mix(in srgb, var(--lv) 45%, transparent); background: linear-gradient(135deg, color-mix(in srgb, var(--lv) 22%, transparent), color-mix(in srgb, var(--lv) 5%, transparent)); }
+.fl-gauge svg { flex: none; }
+.fl-gauge .lvn { font-size: 12px; color: var(--ink-2); }
+.fl-gauge .lvt { font-family: var(--head); font-size: 26px; font-weight: 600; color: var(--lv); line-height: 1.2; }
+.fl-gauge .tip { font-size: 13px; color: var(--ink-2); margin-top: 4px; }
+.needle { transform-origin: 90px 90px; animation: needle 1s var(--ease); }
+@keyframes needle { from { transform: rotate(0deg); } }
+.why { margin-top: 12px; padding: 12px 16px; display: grid; gap: 9px; }
+.why div { display: flex; gap: 10px; font-size: 13.5px; color: var(--ink-2); align-items: baseline; }
+.why i { width: 10px; height: 10px; border-radius: 5px; flex: none; transform: translateY(1px); }
+.ftiles { margin-top: 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ftile { border-radius: 18px; background: var(--card); border: 1px solid var(--line); padding: 10px 12px; min-width: 0; }
+.ftile span { display: block; font-size: 11.5px; color: var(--muted); }
+.ftile b { font-family: var(--head); font-size: 21px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ftile b small { font-size: 11.5px; font-weight: 400; color: var(--muted); }
+.ftile.hot { border-color: rgba(255,138,76,.45); background: rgba(255,138,76,.1); }
+.fbox { margin-top: 12px; padding: 12px 14px; }
+.fbox-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; margin-bottom: 6px; }
+.fbox-h .ttl { font-family: var(--head); font-weight: 500; }
+.fchart svg { display: block; width: 100%; height: auto; }
+.fchart text { font-size: 11px; fill: var(--muted); font-family: var(--font); }
+.fchart text.today { fill: var(--ink); font-weight: 600; }
+.fchart text.bv { fill: var(--ink-2); font-size: 10px; }
+.fchart text.thl { fill: #FFB48A; font-size: 10px; }
+.fchart .gl { stroke: rgba(255,255,255,.08); }
+.fchart .th { stroke: rgba(255,180,138,.6); stroke-dasharray: 4 3; }
+.fchart .nowl { stroke: rgba(255,255,255,.55); stroke-dasharray: 3 3; }
+.fchart .rpast { fill: none; stroke: #6B8FB8; stroke-width: 2; }
+.fchart .rfut { fill: none; stroke: var(--blue); stroke-width: 2.5; }
+.fchart .rmax { fill: none; stroke: var(--yellow); stroke-width: 1.5; stroke-dasharray: 5 3; }
+.river-top { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.river-top b { font-family: var(--head); font-size: 26px; font-weight: 600; }
+
+/* ---------- tab bar ---------- */
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000; background: rgba(11,18,32,.94); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 8px 0 calc(8px + var(--safe-b)); }
+body[data-view="map"] .tabbar { display: none; }
+.tab { border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; color: var(--muted); padding: 2px 0; position: relative; }
+.tab[aria-current="page"] { color: var(--blue); }
+.tab[data-v="flood"][aria-current="page"] { color: var(--orange); }
+.tab .bd { position: absolute; top: 0; left: calc(50% + 8px); width: 9px; height: 9px; border-radius: 5px; background: var(--orange); border: 2px solid var(--bg); }
+
+@media (min-width: 760px) {
+  #map { height: 56vh; }
+  .v-today { max-width: 720px; margin-left: auto; margin-right: auto; }
+}
+@media (max-width: 380px) {
+  .hrow { grid-template-columns: 42px 32px minmax(0, 1fr) 50px 46px 38px; padding: 8px 8px; gap: 4px; }
+  .now .tp { font-size: 54px; }
+  .wrow { grid-template-columns: 46px 34px 48px 28px minmax(0, 1fr) 28px; }
 }
 </style>
 </head>
-<body>
-
-<header class="top">
-  <div class="searchrow">
-    <div class="search">
-      <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6.8" fill="none" stroke="currentColor" stroke-width="2.3"/><path d="M15.2 15.2 21 21" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-      <input id="q" type="search" placeholder="ค้นหาตำบล อำเภอ จังหวัด" autocomplete="off" aria-label="ค้นหาสถานที่">
-      <div class="results" id="results" hidden></div>
-    </div>
-    <button class="iconbtn" id="btn-gps" type="button" aria-label="ใช้ตำแหน่งปัจจุบัน">
-      <svg width="34" height="34" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.8" fill="currentColor"/><path d="M12 1.5v3.5M12 19v3.5M1.5 12H5M19 12h3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    </button>
-    <button class="iconbtn" id="btn-fav" type="button" aria-label="บันทึกเป็นสถานที่โปรด" aria-pressed="false">
-      <svg width="34" height="34" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.2-9.4C1.6 7.6 4 4.2 7.4 4.2c2 0 3.6 1.1 4.6 2.7 1-1.6 2.6-2.7 4.6-2.7 3.4 0 5.8 3.4 4.6 6.9-1.7 4.8-9.2 9.4-9.2 9.4z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>
-    </button>
-  </div>
-</header>
+<body data-view="today">
 
 <div class="mapwrap">
   <div id="map" role="application" aria-label="แผนที่สภาพอากาศ แตะเพื่อดูพยากรณ์ตรงจุดนั้น"></div>
-  <button type="button" class="layerbtn" id="btn-layers" aria-haspopup="dialog" aria-controls="drawer"><span class="ic" id="layer-ic"></span><span id="layer-name">เรดาร์</span>
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5z M2 12l10 5 10-5 M2 16l10 5 10-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></button>
-  <button type="button" class="fullbtn" id="btn-full" aria-label="ขยายแผนที่เต็มจอ" aria-pressed="false"></button>
-  <div class="scale" id="scale"></div>
-  <div class="maploading" id="maploading" hidden>กำลังโหลดแผนที่สภาพอากาศ…</div>
-  <div class="chips">
-    <button class="chip" id="chip-warn" type="button" hidden><span class="badge warn"><svg width="34" height="30" viewBox="0 0 34 30" aria-hidden="true"><path d="M7 4l-4 8.5a4.3 4.3 0 1 0 8 0z M17 2l-4 8.5a4.3 4.3 0 1 0 8 0z M27 4l-4 8.5a4.3 4.3 0 1 0 8 0z" fill="#fff" transform="translate(0 6)"/></svg></span><span id="warn-text">เตือนสภาพอากาศ</span></button>
-    <button class="chip" id="chip-flood" type="button" hidden><span class="badge flood"><svg width="34" height="30" viewBox="0 0 34 30" aria-hidden="true"><path d="M5 14 17 4l12 10v4H5z" fill="#fff"/><path d="M2 22c3-2.5 6-2.5 9 0s6 2.5 9 0 6-2.5 9 0 M2 28c3-2.5 6-2.5 9 0s6 2.5 9 0 6-2.5 9 0" stroke="#fff" stroke-width="2.4" fill="none"/></svg></span><span id="flood-chip-text">น้ำท่วม</span></button>
-    <div class="chip" id="chip-now" hidden><span class="badge now"><b id="now-temp">–</b><small id="now-wind">–</small></span><span id="now-text">สภาพอากาศตอนนี้</span></div>
+
+  <!-- small map (today) -->
+  <div class="searchbar only-today">
+    <label class="search glass">
+      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5 20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input id="q" type="search" placeholder="ค้นหาตำบล อำเภอ จังหวัด" autocomplete="off" aria-label="ค้นหาสถานที่">
+      <div class="results" id="results" hidden></div>
+    </label>
+    <button class="roundbtn glass" id="btn-gps" type="button" aria-label="ใช้ตำแหน่งปัจจุบัน">
+      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 20 12 16 4 20z" fill="#5AB0FF"/></svg>
+    </button>
   </div>
-  <div class="timebar">
-    <button type="button" id="play" aria-label="เล่นแผนที่ตามเวลา">▶</button>
-    <span class="slwrap"><input type="range" id="tslider" min="0" max="47" step="1" value="0" aria-label="เวลาบนแผนที่"><span class="tnow" id="tnow" hidden></span></span>
-    <span class="tl" id="tlabel">–</span>
+  <div class="chips only-today">
+    <button class="chip warn" id="chip-warn" type="button" hidden><span class="dot"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 22 20H2z" fill="#1A1206"/><path d="M12 9v5M12 16.5v1" stroke="#FF8A4C" stroke-width="2.2" stroke-linecap="round"/></svg></span><span id="warn-text">เตือน</span></button>
+    <button class="chip flood" id="chip-flood" type="button" hidden><span class="dot"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15c3-2 5-2 7.5 0s4.5 2 7.5 0 3-2 3-2 M3 20c3-2 5-2 7.5 0s4.5 2 7.5 0 3-2 3-2 M8 11V6l4-3 4 3v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span id="flood-chip-text">น้ำท่วม</span></button>
+  </div>
+  <div class="mapbtns only-today">
+    <button class="roundbtn sm glass" id="btn-layers2" type="button" aria-label="เลือกชั้นแผนที่"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5z M2 12l10 5 10-5 M2 16l10 5 10-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></button>
+    <button class="roundbtn sm glass" id="btn-full" type="button" aria-label="ขยายแผนที่เต็มจอ"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+  </div>
+
+  <!-- full map -->
+  <div class="maptop only-map">
+    <button class="roundbtn sm glass" id="btn-back" type="button" aria-label="ปิดแผนที่เต็มจอ"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+    <button class="layerpill glass" id="btn-layers" type="button" aria-haspopup="dialog" aria-controls="sheet"><span class="ic" id="layer-ic"></span><span class="nm" id="layer-name">เรดาร์</span><span class="pl js-place"></span></button>
+  </div>
+  <div class="scale only-map" id="scale"></div>
+  <div class="maploading" id="maploading" hidden>กำลังโหลดแผนที่…</div>
+  <div class="timebar glass only-map">
+    <button type="button" class="playbtn" id="play" aria-label="เล่นภาพเคลื่อนไหว"></button>
+    <div class="tcol">
+      <div class="tlabel" id="tlabel">–</div>
+      <span class="slwrap"><input type="range" id="tslider" min="0" max="47" step="1" value="0" aria-label="เวลาบนแผนที่"><span class="tnow" id="tnow" hidden></span></span>
+    </div>
   </div>
 </div>
 
 <div class="scrim" id="scrim" hidden></div>
-<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="เลือกชั้นแผนที่" hidden>
-  <div class="drawer-head"><h2>ชั้นแผนที่</h2><button type="button" class="xbtn" id="drawer-close" aria-label="ปิด">✕</button></div>
+<aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="เลือกชั้นแผนที่" hidden>
+  <div class="handle"></div>
+  <div class="sheet-head"><h2>ชั้นข้อมูล</h2><button type="button" class="xbtn" id="sheet-close" aria-label="ปิด"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button></div>
   <div class="lgrid" id="lgrid"></div>
-  <div class="dsec">
-    <div class="dlabel">แสดงบนแผนที่</div>
-    <label class="tgl"><input type="checkbox" id="tg-particles"><span class="sw"></span>ภาพเคลื่อนไหวของอนุภาคลม</label>
-  </div>
+  <label class="tgl"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h11a3 3 0 1 0-3-3 M3 12h15a3 3 0 1 1-3 3 M3 16h7" fill="none" stroke="#93A3BA" stroke-width="2" stroke-linecap="round"/></svg>เส้นลมเคลื่อนไหว<input type="checkbox" id="tg-particles"><span class="sw"></span></label>
   <p class="dnote">ชั้นพยากรณ์เลื่อนดูได้ตั้งแต่ 24 ชม. ที่แล้วถึงล่วงหน้า 48 ชม. · เรดาร์มีข้อมูลย้อนหลังราว 2 ชม. · ภาพดาวเทียมเป็นภาพรายวันจาก NASA</p>
 </aside>
 
-<nav class="days" aria-label="เลือกวัน">
-  <div class="days-scroll" id="days-scroll">
-    <div class="days-track" id="days-track">
-      <div class="days-row" id="days" role="tablist"></div>
-      <div class="sel-rail" id="rail"><div class="knob" id="knob"></div></div>
-      <div class="drops" id="drops"></div>
+<!-- ===== today ===== -->
+<section class="view v-today" aria-label="วันนี้">
+  <div class="wrap">
+    <div class="handle"></div>
+    <div class="now">
+      <div>
+        <div class="lbl"><span class="js-place"></span><button class="favbtn" id="btn-fav" type="button" aria-label="บันทึกเป็นสถานที่โปรด" aria-pressed="false"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.2-9.4C1.6 7.6 4 4.2 7.4 4.2c2 0 3.6 1.1 4.6 2.7 1-1.6 2.6-2.7 4.6-2.7 3.4 0 5.8 3.4 4.6 6.9-1.7 4.8-9.2 9.4-9.2 9.4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button></div>
+        <div class="tp tnum" id="now-temp">–</div>
+        <div class="cd" id="now-cond">กำลังโหลด…</div>
+        <div class="sub" id="now-sub"></div>
+      </div>
+      <div class="big" id="now-icon"></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><span>ฝนวันนี้</span><b class="tnum" id="st-rain">–</b></div>
+      <div class="stat"><span>โอกาสฝน</span><b class="tnum" id="st-prob">–</b></div>
+      <div class="stat"><span>ลมกระโชก</span><b class="tnum" id="st-gust">–</b></div>
+    </div>
+    <button class="alert warn" id="alert-warn" type="button" hidden>
+      <span class="ai" style="background:rgba(255,138,76,.25)"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 22 20H2z" fill="#FF8A4C"/><path d="M12 9v5M12 16.5v1" stroke="#0B1220" stroke-width="2.2" stroke-linecap="round"/></svg></span>
+      <span><b id="alert-warn-t"></b><span id="alert-warn-s"></span></span>
+      <svg class="chev" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>
+    </button>
+    <button class="alert" id="alert-flood" type="button" hidden>
+      <span class="ai" id="alert-flood-ic"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15c3-2 5-2 7.5 0s4.5 2 7.5 0 3-2 3-2 M3 20c3-2 5-2 7.5 0s4.5 2 7.5 0 3-2 3-2 M8 11V6l4-3 4 3v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span><b id="alert-flood-t"></b><span id="alert-flood-s"></span></span>
+      <svg class="chev" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>
+    </button>
+    <div class="sec-h"><h2>7 วันข้างหน้า</h2><button class="linkbtn" type="button" data-go="forecast">ดูรายชั่วโมง</button></div>
+    <div class="card week" id="week"></div>
+    <div class="status" id="status" role="status"></div>
+  </div>
+</section>
+
+<!-- ===== forecast ===== -->
+<section class="view v-forecast" aria-label="พยากรณ์รายชั่วโมง">
+  <div class="wrap">
+    <div class="vhead">
+      <div class="tt"><button class="placebtn" type="button" data-search aria-label="เปลี่ยนสถานที่"><h1 class="js-place">–</h1></button><div class="st js-status"></div></div>
+      <button class="iconbtn" id="btn-share" type="button" aria-label="แชร์"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 13v7h16v-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <div class="ctrls">
+      <div class="seg" role="group" aria-label="ช่วงเวลา"><button type="button" data-step="3">3 ชม.</button><button type="button" data-step="1">1 ชม.</button></div>
+      <span class="selpill"><select id="sel-model" aria-label="แหล่งข้อมูลพยากรณ์">
+        <option value="best_match">แหล่งข้อมูล: อัตโนมัติ</option>
+        <option value="ecmwf_ifs025">แหล่งข้อมูล: ECMWF</option>
+        <option value="gfs_seamless">แหล่งข้อมูล: GFS</option>
+        <option value="icon_seamless">แหล่งข้อมูล: ICON</option>
+      </select><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8l7 7 7-7" fill="none" stroke="currentColor" stroke-width="3"/></svg></span>
+    </div>
+    <div class="dchips" id="dchips" role="tablist" aria-label="เลือกวัน"></div>
+    <div class="daysum" id="daysum"></div>
+    <div class="card meteo" id="meteo"><div class="skeleton" style="height:180px"></div></div>
+    <div class="card hours" id="hours"></div>
+    <div class="note">
+      <span>ฝน = ปริมาณสะสมในช่วงเวลาก่อนหน้า (มม.) · ลมกระโชก = แรงสุดในช่วงนั้น (km/h) · แถบสีส้ม = ฝนหนัก ฟ้าคะนอง หรือลมแรง</span>
+      <span>ข้อมูลพยากรณ์จาก <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · แผนที่ © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · เรดาร์ RainViewer · ดาวเทียม NASA GIBS</span>
     </div>
   </div>
-  <button class="fc-link" type="button" id="btn-next">พยากรณ์อากาศ 16 วัน
-    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4l8 8-8 8" fill="none" stroke="currentColor" stroke-width="3"/></svg></button>
-</nav>
+</section>
 
-<main>
-  <section class="flood" id="flood" aria-labelledby="flood-h" hidden>
-    <div class="flood-head"><h2 id="flood-h">เฝ้าระวังน้ำท่วม</h2><span class="risk" id="flood-level"></span></div>
-    <div id="flood-body"></div>
-  </section>
-  <div class="dayhead" id="dayhead"></div>
-  <div class="tablebox" id="tablebox"><div class="skeleton"></div></div>
-  <div class="status" id="status" role="status"></div>
-  <div class="note">
-    <span>ฝน = ปริมาณสะสมในช่วงเวลาก่อนหน้า (มม.) · ลมกระโชก = แรงสุดในช่วงนั้น · คำเตือนฝนหนักเมื่อฝนเกิน 10 มม. ใน 3 ชั่วโมง</span>
-    <span>ข้อมูลพยากรณ์จาก <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · แผนที่ © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>, CARTO · แตะบนแผนที่เพื่อดูพยากรณ์ตรงจุดนั้น</span>
+<!-- ===== flood ===== -->
+<section class="view v-flood" aria-label="เฝ้าระวังน้ำท่วม">
+  <div class="wrap">
+    <div class="vhead">
+      <div class="tt"><h1>เฝ้าระวังน้ำท่วม</h1><div class="st"><span class="js-place"></span> · ประเมินจากฝนและน้ำในแม่น้ำ</div></div>
+    </div>
+    <div id="flood-body"><div class="skeleton" style="height:420px"></div></div>
   </div>
-</main>
+</section>
 
-<footer class="bottombar">
-  <label class="bb">
-    <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-    <span class="stack"><span class="lbl">การพยากรณ์</span>
-      <select id="sel-step" aria-label="ช่วงเวลาในตาราง"><option value="3">3 ชั่วโมง</option><option value="1">1 ชั่วโมง</option></select>
-      <svg class="chev" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8l7 7 7-7" fill="none" stroke="currentColor" stroke-width="3"/></svg></span>
-  </label>
-  <label class="bb">
-    <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5z M2 12l10 5 10-5 M2 16l10 5 10-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
-    <span class="stack"><span class="lbl">แหล่งข้อมูล</span>
-      <select id="sel-model" aria-label="แบบจำลองพยากรณ์">
-        <option value="best_match">อัตโนมัติ</option>
-        <option value="ecmwf_ifs025">ECMWF</option>
-        <option value="gfs_seamless">GFS</option>
-        <option value="icon_seamless">ICON</option>
-      </select>
-      <svg class="chev" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8l7 7 7-7" fill="none" stroke="currentColor" stroke-width="3"/></svg></span>
-  </label>
-  <button class="sharebtn" id="btn-share" type="button" aria-label="แชร์">
-    <svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M4 13v7h16v-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </button>
-</footer>
+<nav class="tabbar" aria-label="เมนูหลัก">
+  <button class="tab" type="button" data-v="today"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17h10a4 4 0 0 0 0-8 6 6 0 0 0-11.5 1.6A3.5 3.5 0 0 0 7 17z" fill="none" stroke="currentColor" stroke-width="2"/></svg>วันนี้</button>
+  <button class="tab" type="button" data-v="forecast"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18 9 12l4 3 7-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>พยากรณ์</button>
+  <button class="tab" type="button" data-v="flood"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15c3-2 5-2 7.5 0s4.5 2 7.5 0 3-2 3-2 M3 20c3-2 5-2 7.5 0s4.5 2 7.5 0 3-2 3-2 M8 11V6l4-3 4 3v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>น้ำท่วม<span class="bd" id="tab-flood-bd" hidden></span></button>
+  <button class="tab" type="button" data-v="map"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z M9 4v14 M15 6v14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>แผนที่</button>
+</nav>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 (function () {
   "use strict";
   const $ = (id) => document.getElementById(id);
+  const $$ = (sel) => document.querySelectorAll(sel);
   const DAY_SHORT = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
   const DAY_FULL = ["วันอาทิตย์", "วันจันทร์", "วันอังคาร", "วันพุธ", "วันพฤหัสบดี", "วันศุกร์", "วันเสาร์"];
   const MON = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-  const DW = 86;                      // day column width in px
   const DEFAULT_PLACE = { name: "หาดใหญ่", detail: "สงขลา", lat: 7.0084, lon: 100.4747 };
+  const LV_COL = ["#4CD69A", "#FFC24A", "#FF8A4C", "#FF5A5F"];
+  const REDUCE = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   const store = {
     get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (_) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} },
   };
-  document.documentElement.style.setProperty("--dw", DW + "px");
 
   let place = store.get("wx-place", DEFAULT_PLACE);
   let favs = store.get("wx-favs", []);
@@ -394,9 +459,10 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
   let layer = store.get("wx-layer", "radar");
   let fc = null, selDay = 0;
   let map = null, marker = null;
-  $("sel-step").value = String(step);
+  let view = "today", mapBack = "today";
   $("sel-model").value = model;
 
+  // ---------- weather codes (WMO) ----------
   // ---------- weather codes (WMO) ----------
   function codeInfo(c) {
     if (c === 0) return { t: "ท้องฟ้าแจ่มใส", k: "clear" };
@@ -467,6 +533,7 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
     return "background:rgba(" + c.slice(0, 3).map(Math.round).join(",") + ",.9);color:" + (v >= 45 ? "#fff" : "#13222a");
   }
 
+
   // ---------- forecast for the chosen place ----------
   async function loadForecast() {
     setStatus("");
@@ -474,7 +541,7 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
       latitude: place.lat.toFixed(4), longitude: place.lon.toFixed(4), timezone: "auto", forecast_days: "16", wind_speed_unit: "kmh", models: model,
       hourly: "temperature_2m,apparent_temperature,precipitation,precipitation_probability,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,is_day",
       daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max",
-      current: "temperature_2m,weather_code,wind_speed_10m,precipitation,is_day",
+      current: "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,precipitation,is_day",
     });
     try {
       const r = await fetch("https://api.open-meteo.com/v1/forecast?" + p);
@@ -497,193 +564,200 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
     render();
     loadFlood();
   }
-  function setStatus(t, err) { $("status").textContent = t; $("status").className = "status" + (err ? " err" : ""); }
-
-  function parseLocal(s) { const [d, t] = s.split("T"); const [y, m, dd] = d.split("-").map(Number); return { y, m, d: dd, h: t ? Number(t.slice(0, 2)) : 0, date: new Date(y, m - 1, dd) }; }
+  function setStatus(t, err) {
+    $("status").textContent = t; $("status").className = "status" + (err ? " err" : "");
+    $$(".js-status").forEach((el) => { el.textContent = t; });
+  }
 
   function render() {
     renderHeader();
-    if (!fc) { $("tablebox").innerHTML = ""; $("days").innerHTML = ""; $("drops").innerHTML = ""; return; }
+    if (!fc) { $("hours").innerHTML = ""; $("meteo").innerHTML = ""; $("dchips").innerHTML = ""; $("week").innerHTML = ""; return; }
     renderNow();
-    renderDays();
-    renderTable();
+    renderWeek();
+    renderForecast();
   }
 
   function renderHeader() {
     if (document.activeElement !== $("q")) $("q").value = place.name;
+    $$(".js-place").forEach((el) => { el.textContent = place.name; });
     const isFav = favs.some((f) => f.lat === place.lat && f.lon === place.lon);
     $("btn-fav").setAttribute("aria-pressed", String(isFav));
     $("btn-fav").setAttribute("aria-label", isFav ? "ลบออกจากสถานที่โปรด" : "บันทึกเป็นสถานที่โปรด");
     document.title = place.name + " · ฟ้าฝนวันนี้";
   }
 
+  const dayName = (i) => { const p = parseLocal(fc.daily.time[i]); return i === 0 ? "วันนี้" : i === 1 ? "พรุ่งนี้" : DAY_SHORT[p.date.getDay()] + "."; };
+  const fmt1 = (v) => (v == null ? "–" : v >= 100 ? v.toFixed(0) : v.toFixed(1));
+
   function renderNow() {
-    const c = fc.current;
+    const c = fc.current, d = fc.daily;
     if (c) {
-      $("chip-now").hidden = false;
       $("now-temp").textContent = Math.round(c.temperature_2m) + "°";
-      $("now-wind").textContent = Math.round(c.wind_speed_10m) + "km/h";
-      $("now-text").textContent = codeInfo(c.weather_code).t;
+      $("now-cond").textContent = codeInfo(c.weather_code).t;
+      $("now-icon").innerHTML = icon(c.weather_code, c.is_day, 92);
+      $("now-sub").textContent = (c.apparent_temperature != null ? "รู้สึกเหมือน " + Math.round(c.apparent_temperature) + "° · " : "") + "ลม " + Math.round(c.wind_speed_10m) + " km/h";
     }
-    // warning: heavy rain or thunder in the next 48 h
+    $("st-rain").innerHTML = fmt1(d.precipitation_sum[0] || 0) + "<small> มม.</small>";
+    $("st-prob").innerHTML = (d.precipitation_probability_max ? (d.precipitation_probability_max[0] ?? "–") : "–") + "<small>%</small>";
+    $("st-gust").innerHTML = (d.wind_gusts_10m_max ? Math.round(d.wind_gusts_10m_max[0]) : "–") + "<small> km/h</small>";
+    // warning: heavy rain, thunder or strong gusts in the next 48 h
     const h = fc.hourly, start = nowIndex();
     let warn = null;
     for (let i = start; i < Math.min(h.time.length, start + 48); i++) {
       let r3 = 0; for (let j = Math.max(0, i - 2); j <= i; j++) r3 += h.precipitation[j] || 0;
-      if (r3 >= 10 || h.weather_code[i] >= 95 || h.wind_gusts_10m[i] >= 50) { warn = { i, kind: r3 >= 10 ? "ฝนหนัก" : h.weather_code[i] >= 95 ? "พายุฝนฟ้าคะนอง" : "ลมแรง" }; break; }
+      if (r3 >= 10 || h.weather_code[i] >= 95 || h.wind_gusts_10m[i] >= 50) { warn = { i, r3, kind: r3 >= 10 ? "ฝนหนัก" : h.weather_code[i] >= 95 ? "พายุฝนฟ้าคะนอง" : "ลมแรง" }; break; }
     }
     $("chip-warn").hidden = !warn;
+    $("alert-warn").hidden = !warn;
     if (warn) {
       const p = parseLocal(h.time[warn.i]);
-      $("warn-text").textContent = "เตือน" + warn.kind + " " + (p.date.toDateString() === new Date().toDateString() ? "วันนี้" : DAY_FULL[p.date.getDay()]) + " " + String(p.h).padStart(2, "0") + ":00";
-      $("chip-warn").onclick = () => { const di = fc.daily.time.indexOf(h.time[warn.i].slice(0, 10)); if (di >= 0) { selDay = di; renderDays(); renderTable(); $("tablebox").scrollIntoView({ behavior: "smooth" }); } };
+      const when = (p.date.toDateString() === new Date().toDateString() ? "วันนี้" : DAY_FULL[p.date.getDay()]) + " " + String(p.h).padStart(2, "0") + ":00";
+      $("warn-text").textContent = "เตือน" + warn.kind + " " + when;
+      $("alert-warn-t").textContent = "เตือน" + warn.kind;
+      $("alert-warn-s").textContent = when + " น." + (warn.r3 >= 10 ? " · ฝนราว " + warn.r3.toFixed(0) + " มม. ใน 3 ชม." : "") + " แตะเพื่อดูรายชั่วโมง";
+      const go = () => { const di = fc.daily.time.indexOf(h.time[warn.i].slice(0, 10)); if (di >= 0) selDay = di; setView("forecast"); };
+      $("chip-warn").onclick = go; $("alert-warn").onclick = go;
     }
   }
+
+  function renderWeek() {
+    const d = fc.daily, n = Math.min(7, d.time.length);
+    let lo = Infinity, hi = -Infinity;
+    for (let i = 0; i < n; i++) { lo = Math.min(lo, d.temperature_2m_min[i]); hi = Math.max(hi, d.temperature_2m_max[i]); }
+    const sp = Math.max(1, hi - lo);
+    const box = $("week");
+    box.textContent = "";
+    for (let i = 0; i < n; i++) {
+      const r = d.precipitation_sum[i] || 0, a = d.temperature_2m_min[i], b = d.temperature_2m_max[i];
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.className = "wrow";
+      btn.innerHTML = '<span class="dn">' + dayName(i) + "</span>" + icon(d.weather_code[i], 1, 34) +
+        '<span class="rn">' + (r >= 0.5 ? fmt1(r) + " มม." : "") + "</span>" +
+        '<span class="lo tnum">' + Math.round(a) + "°</span>" +
+        '<span class="tbar"><i style="left:' + ((a - lo) / sp * 100).toFixed(1) + "%;width:" + Math.max(4, (b - a) / sp * 100).toFixed(1) + '%"></i></span>' +
+        '<span class="hi tnum">' + Math.round(b) + "°</span>";
+      btn.setAttribute("aria-label", dayName(i) + " " + codeInfo(d.weather_code[i]).t + " " + Math.round(a) + " ถึง " + Math.round(b) + " องศา ฝน " + fmt1(r) + " มม.");
+      btn.onclick = () => { selDay = i; setView("forecast"); };
+      box.appendChild(btn);
+    }
+  }
+
+  function renderForecast() {
+    renderChips();
+    renderDay();
+  }
+
+  function renderChips() {
+    const d = fc.daily, box = $("dchips");
+    box.textContent = "";
+    d.time.forEach((t, i) => {
+      const p = parseLocal(t);
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "dchip"; b.setAttribute("role", "tab");
+      b.setAttribute("aria-selected", String(i === selDay));
+      const r = d.precipitation_sum[i] || 0;
+      b.innerHTML = '<span class="dn">' + dayName(i) + '</span><span class="dd">' + p.d + " " + MON[p.m - 1] + "</span>" + icon(d.weather_code[i], 1, 34) +
+        '<span class="t tnum"><b>' + Math.round(d.temperature_2m_max[i]) + "°</b> " + Math.round(d.temperature_2m_min[i]) + "°</span>" +
+        '<span class="r">' + (r >= 0.5 ? fmt1(r) + " มม." : "") + "</span>";
+      b.onclick = () => { selDay = i; $$(".dchip").forEach((x, k) => x.setAttribute("aria-selected", String(k === i))); renderDay(); centerChip(true); };
+      box.appendChild(b);
+    });
+    centerChip(false);
+  }
+  function centerChip(smooth) {
+    const box = $("dchips"), el = box.children[selDay];
+    if (!el || !box.clientWidth) return;
+    box.scrollTo({ left: Math.max(0, el.offsetLeft - box.clientWidth / 2 + el.offsetWidth / 2), behavior: smooth && !REDUCE ? "smooth" : "auto" });
+  }
+
+  // risky hour: heavy rain in 3 h, thunder, or strong gusts
+  function riskAt(i) {
+    const h = fc.hourly;
+    let r3 = 0; for (let j = Math.max(0, i - 2); j <= i; j++) r3 += h.precipitation[j] || 0;
+    return r3 >= 10 ? "ฝนหนัก" : h.weather_code[i] >= 95 ? "ฟ้าคะนอง" : h.wind_gusts_10m[i] >= 50 ? "ลมแรง" : "";
+  }
+
+  function renderDay() {
+    const h = fc.hourly, d = fc.daily;
+    const dayStr = d.time[selDay], pd = parseLocal(dayStr);
+    const idx = new Map(h.time.map((t, i) => [t, i]));
+    const prob = d.precipitation_probability_max ? d.precipitation_probability_max[selDay] : null;
+    const gmax = d.wind_gusts_10m_max ? d.wind_gusts_10m_max[selDay] : null;
+    $("daysum").innerHTML = "<b>" + (selDay === 0 ? "วันนี้ · " : "") + DAY_FULL[pd.date.getDay()] + " " + pd.d + " " + MON[pd.m - 1] + "</b><br>" +
+      codeInfo(d.weather_code[selDay]).t + " · " + Math.round(d.temperature_2m_min[selDay]) + "–" + Math.round(d.temperature_2m_max[selDay]) + "°C · ฝน " + fmt1(d.precipitation_sum[selDay] || 0) + " มม." +
+      (prob != null ? " · โอกาสฝน " + prob + "%" : "") + (gmax != null ? " · ลมกระโชกสูงสุด " + Math.round(gmax) + " km/h" : "") + (selDay >= 7 ? " · พยากรณ์ล่วงหน้าไกล ความแม่นยำลดลง" : "");
+
+    // ----- meteogram: 24 hourly rain bars + smooth temperature curve -----
+    const hrs = [];
+    for (let hr = 0; hr < 24; hr++) { const i = idx.get(dayStr + "T" + String(hr).padStart(2, "0") + ":00"); if (i != null) hrs.push({ hr, i }); }
+    let runs = [];
+    hrs.forEach((o) => { const k = riskAt(o.i); if (!k) return; const last = runs[runs.length - 1]; if (last && last.end === o.hr - 1 && last.kind === k) last.end = o.hr; else runs.push({ kind: k, start: o.hr, end: o.hr }); });
+    const r0 = runs[0];
+    const pill = r0 ? '<span class="pill-warn">' + r0.kind + " " + String(r0.start).padStart(2, "0") + ":00–" + String(Math.min(24, r0.end + 1)).padStart(2, "0") + ":00</span>" : "";
+    let svg = "";
+    if (hrs.length > 1) {
+      const W = 360, L = 14, R = 14, x = (hr) => L + hr * (W - L - R) / 23;
+      const ts = hrs.map((o) => h.temperature_2m[o.i]), lo = Math.min(...ts), hi = Math.max(...ts), sp = Math.max(3, hi - lo);
+      const ty = (v) => 100 - ((v - lo) / sp) * 66;
+      const rs = hrs.map((o) => h.precipitation[o.i] || 0), rmax = Math.max(4, ...rs);
+      const bw = (W - L - R) / 24 - 3;
+      let g = "";
+      hrs.forEach((o) => { if (!h.is_day[o.i]) g += '<rect x="' + (x(o.hr) - (W - L - R) / 46).toFixed(1) + '" y="16" width="' + ((W - L - R) / 23 + .5).toFixed(1) + '" height="134" fill="rgba(120,110,255,.06)"/>'; });
+      g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="150" y2="150" stroke="rgba(255,255,255,.12)"/>';
+      hrs.forEach((o, k) => { const r = rs[k]; if (r < 0.05) return; const bh = Math.max(2, (r / rmax) * 42); g += '<rect x="' + (x(o.hr) - bw / 2).toFixed(1) + '" y="' + (150 - bh).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="2" fill="' + (r >= 5 ? "#FF8A4C" : "#5AB0FF") + '" opacity=".9"><title>' + String(o.hr).padStart(2, "0") + ":00 · " + r.toFixed(1) + ' มม.</title></rect>'; });
+      const pts = hrs.map((o, k) => [x(o.hr), ty(ts[k])]);
+      let path = "M" + pts[0][0].toFixed(1) + " " + pts[0][1].toFixed(1);
+      for (let k = 1; k < pts.length; k++) { const [xa, ya] = pts[k - 1], [xb, yb] = pts[k], mx = (xa + xb) / 2; path += " C" + mx.toFixed(1) + " " + ya.toFixed(1) + " " + mx.toFixed(1) + " " + yb.toFixed(1) + " " + xb.toFixed(1) + " " + yb.toFixed(1); }
+      const area = path + " L" + pts[pts.length - 1][0].toFixed(1) + " 112 L" + pts[0][0].toFixed(1) + " 112 Z";
+      g += '<defs><linearGradient id="mtl" gradientUnits="userSpaceOnUse" x1="0" y1="34" x2="0" y2="100"><stop offset="0" stop-color="#FF8A4C"/><stop offset=".5" stop-color="#FFC24A"/><stop offset="1" stop-color="#5AB0FF"/></linearGradient>' +
+        '<linearGradient id="mta" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFC24A" stop-opacity=".28"/><stop offset="1" stop-color="#FFC24A" stop-opacity="0"/></linearGradient></defs>';
+      g += '<path d="' + area + '" fill="url(#mta)"/><path d="' + path + '" fill="none" stroke="url(#mtl)" stroke-width="3" stroke-linecap="round"/>';
+      hrs.forEach((o, k) => { if (o.hr % 3 !== 1) return; g += '<circle cx="' + pts[k][0].toFixed(1) + '" cy="' + pts[k][1].toFixed(1) + '" r="3" fill="#0B1220" stroke="#EEF3FA" stroke-width="1.6"/><text x="' + pts[k][0].toFixed(1) + '" y="' + (pts[k][1] - 8).toFixed(1) + '" text-anchor="middle" font-size="11" font-weight="600" fill="#EEF3FA">' + Math.round(ts[k]) + "°</text>"; });
+      for (let hr = 0; hr < 24; hr += 3) g += '<text x="' + x(hr).toFixed(1) + '" y="166" text-anchor="middle" font-size="10.5" fill="#93A3BA">' + String(hr).padStart(2, "0") + "</text>";
+      if (selDay === 0) {
+        const nh = parseLocal(h.time[nowIndex()]).h, nx = x(nh);
+        g += '<line x1="' + nx.toFixed(1) + '" x2="' + nx.toFixed(1) + '" y1="14" y2="150" stroke="#EEF3FA" stroke-opacity=".7" stroke-dasharray="3 3"/><text x="' + nx.toFixed(1) + '" y="11" text-anchor="middle" font-size="10" fill="#EEF3FA">ตอนนี้</text>';
+      }
+      svg = '<svg viewBox="0 0 ' + W + ' 172" role="img" aria-label="กราฟอุณหภูมิและฝนรายชั่วโมง">' + g + "</svg>";
+    }
+    $("meteo").innerHTML = '<div class="meteo-h"><span class="ttl">อุณหภูมิและฝน</span>' + pill + "</div>" + svg +
+      '<div class="legend"><span><i style="background:linear-gradient(90deg,#5AB0FF,#FF8A4C)"></i>อุณหภูมิ °C</span><span><i style="background:#5AB0FF"></i>ฝน มม./ชม.</span><span><i style="background:rgba(120,110,255,.35)"></i>กลางคืน</span></div>';
+
+    // ----- hourly rows -----
+    const hours = step === 3 ? [1, 4, 7, 10, 13, 16, 19, 22] : Array.from({ length: 24 }, (_, i) => i);
+    const cols = hours.map((hr) => {
+      const i = idx.get(dayStr + "T" + String(hr).padStart(2, "0") + ":00");
+      if (i == null) return null;
+      let rain = 0, gust = 0, prob = 0, risk = "";
+      for (let j = Math.max(0, i - step + 1); j <= i; j++) {
+        rain += h.precipitation[j] || 0;
+        gust = Math.max(gust, h.wind_gusts_10m[j] || 0);
+        prob = Math.max(prob, h.precipitation_probability ? (h.precipitation_probability[j] || 0) : 0);
+        risk = risk || riskAt(j);
+      }
+      return { hr, i, rain, gust, prob, risk, t: h.temperature_2m[i], feels: h.apparent_temperature[i], code: h.weather_code[i], day: h.is_day[i], wind: h.wind_speed_10m[i], dir: h.wind_direction_10m[i] };
+    }).filter(Boolean);
+    const ni = nowIndex();
+    let html = '<div class="hrow head"><span>เวลา</span><span></span><span>อุณหภูมิ · รู้สึก</span><span>ฝน มม.</span><span>ลม</span><span style="justify-self:end">กระโชก</span></div>';
+    cols.forEach((c) => {
+      const isNow = ni > c.i - step && ni <= c.i;
+      html += '<div class="hrow' + (c.day ? "" : " night") + (isNow ? " now" : "") + (c.risk ? " risk" : "") + '">' +
+        '<span class="h-time">' + String(c.hr).padStart(2, "0") + ":00" + (isNow ? "<em>ตอนนี้</em>" : c.risk ? "<em>" + c.risk + "</em>" : "") + "</span>" +
+        '<span title="' + codeInfo(c.code).t + '">' + icon(c.code, c.day, 36) + "</span>" +
+        '<span class="h-temp tnum"><b>' + Math.round(c.t) + "°</b><small>" + Math.round(c.feels) + "°</small></span>" +
+        '<span class="h-rain tnum">' + (c.rain >= 0.05 ? c.rain.toFixed(1) : '<span class="muted">–</span>') + (c.prob >= 10 ? "<small>" + c.prob + "%</small>" : "") + "</span>" +
+        '<span class="h-wind tnum"><span class="arrow" title="ลมพัดมาจาก ' + Math.round(c.dir) + '°" style="transform:rotate(' + (c.dir + 180) + 'deg)"><svg width="16" height="18" viewBox="0 0 20 22" aria-hidden="true"><path d="M10 1 17 10h-4.5v11h-5V10H3z" fill="#8CC8FF"/></svg></span>' + Math.round(c.wind) + "</span>" +
+        '<span class="h-gust tnum" style="' + gustStyle(c.gust) + '">' + Math.round(c.gust) + "</span></div>";
+    });
+    $("hours").innerHTML = html;
+  }
+
+  function parseLocal(s) { const [d, t] = s.split("T"); const [y, m, dd] = d.split("-").map(Number); return { y, m, d: dd, h: t ? Number(t.slice(0, 2)) : 0, date: new Date(y, m - 1, dd) }; }
 
   function nowIndex() {
     const h = fc.hourly;
     if (fc.current) { const k = fc.current.time.slice(0, 13) + ":00"; const i = h.time.indexOf(k); if (i >= 0) return i; }
     return 0;
-  }
-
-  function renderDays() {
-    const d = fc.daily, h = fc.hourly, n = d.time.length;
-    const row = $("days");
-    row.textContent = "";
-    d.time.forEach((t, i) => {
-      const p = parseLocal(t);
-      const b = document.createElement("button");
-      b.className = "day"; b.type = "button"; b.setAttribute("role", "tab");
-      b.setAttribute("aria-selected", String(i === selDay));
-      b.innerHTML =
-        '<span class="dn">' + (i === 0 ? "วันนี้" : DAY_SHORT[p.date.getDay()]) + "<small>" + p.d + " " + MON[p.m - 1] + "</small></span>" +
-        '<span class="ic">' + icon(d.weather_code[i], 1, 46) + "</span>" +
-        '<span class="tt tnum">' + Math.round(d.temperature_2m_min[i]) + "° / <b>" + Math.round(d.temperature_2m_max[i]) + "°</b></span>";
-      b.setAttribute("aria-label", DAY_FULL[p.date.getDay()] + " " + p.d + " " + MON[p.m - 1] + " ฝน " + d.precipitation_sum[i].toFixed(1) + " มม.");
-      b.onclick = () => { selDay = i; renderDays(); renderTable(); };
-      row.appendChild(b);
-    });
-    // temperature hills behind the day row
-    const W = n * DW, H = 150;
-    let lo = Infinity, hi = -Infinity;
-    h.temperature_2m.forEach((v) => { if (v != null) { lo = Math.min(lo, v); hi = Math.max(hi, v); } });
-    const span = Math.max(4, hi - lo);
-    const pts = [];
-    for (let i = 0; i < Math.min(h.time.length, n * 24); i++) {
-      const v = h.temperature_2m[i]; if (v == null) continue;
-      pts.push([(i / 24) * DW, H - 18 - ((v - lo) / span) * 70]);
-    }
-    let path = "M0 " + H + " L" + pts.map((q) => q[0].toFixed(1) + " " + q[1].toFixed(1)).join(" L") + " L" + W + " " + H + " Z";
-    const svg = '<svg class="hills" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '"><defs><linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9b8d4" stop-opacity=".95"/><stop offset="1" stop-color="#6d5f78" stop-opacity=".25"/></linearGradient></defs><path d="' + path + '" fill="url(#hg)"/></svg>';
-    const track = $("days-track");
-    const old = track.querySelector("svg.hills"); if (old) old.remove();
-    track.insertAdjacentHTML("afterbegin", svg);
-    track.style.width = W + "px";
-    // rain drops row
-    $("drops").innerHTML = d.precipitation_sum.map((r) => {
-      const k = r < 0.5 ? 0 : r < 3 ? 1 : r < 10 ? 2 : r < 25 ? 3 : 4;
-      return "<span>" + dropSvg.repeat(k) + "</span>";
-    }).join("");
-    // selection knob
-    const knob = $("knob");
-    knob.style.left = (selDay * DW + 4) + "px";
-    knob.style.width = (DW - 8) + "px";
-    const sc = $("days-scroll");
-    const target = selDay * DW - sc.clientWidth / 2 + DW / 2;
-    sc.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
-  }
-  $("btn-next").onclick = () => { if (!fc) return; selDay = Math.min(fc.daily.time.length - 1, selDay + 1); renderDays(); renderTable(); };
-  $("rail").addEventListener("click", (e) => {
-    if (!fc) return;
-    const r = $("days-track").getBoundingClientRect();
-    const i = Math.floor((e.clientX - r.left) / DW);
-    if (i >= 0 && i < fc.daily.time.length) { selDay = i; renderDays(); renderTable(); }
-  });
-
-  function renderTable() {
-    const h = fc.hourly, d = fc.daily;
-    const dayStr = d.time[selDay], pd = parseLocal(dayStr);
-    const idx = new Map(h.time.map((t, i) => [t, i]));
-    const hours = step === 3 ? [1, 4, 7, 10, 13, 16, 19, 22] : Array.from({ length: 24 }, (_, i) => i);
-    const cols = hours.map((hr) => {
-      const i = idx.get(dayStr + "T" + String(hr).padStart(2, "0") + ":00");
-      if (i == null) return null;
-      let rain = 0, gust = 0, prob = 0;
-      for (let j = Math.max(0, i - step + 1); j <= i; j++) {
-        rain += h.precipitation[j] || 0;
-        gust = Math.max(gust, h.wind_gusts_10m[j] || 0);
-        prob = Math.max(prob, h.precipitation_probability ? (h.precipitation_probability[j] || 0) : 0);
-      }
-      return { hr, i, rain, gust, prob, t: h.temperature_2m[i], feels: h.apparent_temperature[i], code: h.weather_code[i], day: h.is_day[i], wind: h.wind_speed_10m[i], dir: h.wind_direction_10m[i] };
-    }).filter(Boolean);
-
-    const ni = nowIndex();
-    let nowCol = -1;
-    cols.forEach((c, k) => { if (ni > c.i - step && ni <= c.i) nowCol = k; });
-
-    const cell = (c, k, html, extra) => '<td class="' + (c.day ? "" : "nt") + (k === nowCol ? " now" : "") + (extra || "") + '">' + html + "</td>";
-    const row = (cls, label, unit, f) => '<tr class="' + cls + '"><th scope="row">' + label + (unit != null ? '<span class="u">' + unit + "</span>" : "") + "</th>" + cols.map((c, k) => cell(c, k, f(c, k))).join("") + "</tr>";
-    const prob = d.precipitation_probability_max ? d.precipitation_probability_max[selDay] : null;
-
-    // warning band: contiguous runs of risky columns
-    const risky = cols.map((c) => c.rain >= 10 * (step / 3) ? "ฝนหนัก" : c.code >= 95 ? "ฟ้าคะนอง" : c.gust >= 50 ? "ลมแรง" : "");
-    const firstRisk = risky.findIndex(Boolean);
-    const warnRow = '<tr class="warnrow"><th scope="row">คำเตือน<span class="u"><svg width="18" height="16" viewBox="0 0 24 22" aria-hidden="true"><path d="M12 1 23 21H1z" fill="currentColor"/><path d="M12 8v6M12 16.5v1.5" stroke="var(--bg)" stroke-width="2.2"/></svg></span></th>' +
-      cols.map((c, k) => cell(c, k, (k === firstRisk ? '<span class="warntext"><svg width="20" height="14" viewBox="0 0 34 24" aria-hidden="true"><path d="M7 4l-4 8.5a4.3 4.3 0 1 0 8 0z M17 2l-4 8.5a4.3 4.3 0 1 0 8 0z M27 4l-4 8.5a4.3 4.3 0 1 0 8 0z" fill="currentColor"/></svg>' + risky[k] + "</span>" : "") + (risky[k] ? '<span class="warnband"></span>' : ""))).join("") + "</tr>";
-
-    const headDay = (selDay === 0 ? "วันนี้ · " : "") + DAY_FULL[pd.date.getDay()] + " " + pd.d + " " + MON[pd.m - 1];
-    const html =
-      '<table class="fc">' +
-      row("hour", "ชั่วโมง", '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2"/></svg>', (c) => c.hr) +
-      row("icon", "", null, (c) => '<span title="' + codeInfo(c.code).t + '">' + icon(c.code, c.day, step === 1 ? 40 : 50) + "</span>") +
-      row("temp", "อุณหภูมิ", "°C", (c) => Math.round(c.t) + "°") +
-      row("feels", "รู้สึกเหมือน", "°C", (c) => Math.round(c.feels) + "°") +
-      row("rain", "ฝน", "มม.", (c) => (c.rain >= 0.05 ? c.rain.toFixed(1) : "")) +
-      row("prob", "โอกาสฝน", "%", (c) => (c.prob >= 10 ? c.prob : "")) +
-      row("wind", "ลม", "km/h", (c) => Math.round(c.wind)) +
-      row("gust", "ลมกระโชก", "km/h", (c) => '<span class="g" style="' + gustStyle(c.gust) + '">' + Math.round(c.gust) + "</span>") +
-      row("dir", "ทิศทางลม", '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 22V3M5 4h12l-3 4 3 4H5" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>', (c) => '<span class="arrow" title="ลมพัดมาจาก ' + Math.round(c.dir) + '°" style="transform:rotate(' + (c.dir + 180) + 'deg)"><svg width="24" height="26" viewBox="0 0 20 22" aria-hidden="true"><path d="M10 1 17 10h-4.5v11h-5V10H3z" fill="#5c7fb0"/></svg></span>') +
-      warnRow +
-      "</table>";
-    const box = $("tablebox");
-    box.innerHTML = html;
-    const gmax = d.wind_gusts_10m_max ? d.wind_gusts_10m_max[selDay] : null;
-    $("dayhead").innerHTML = "<span>" + headDay + "</span>" + (prob != null ? '<span class="acc"><b>' + prob + '%</b>โอกาสฝน</span>' : "") +
-      '<span class="sum">' + codeInfo(d.weather_code[selDay]).t + " · " + Math.round(d.temperature_2m_min[selDay]) + "–" + Math.round(d.temperature_2m_max[selDay]) + "°C · ฝนทั้งวัน " + (d.precipitation_sum[selDay] || 0).toFixed(1) + " มม." + (gmax != null ? " · ลมกระโชกสูงสุด " + Math.round(gmax) + " km/h" : "") + (selDay >= 7 ? " · พยากรณ์ล่วงหน้าไกล ความแม่นยำลดลง" : "") + "</span>";
-    drawWave(box, cols);
-    // tap a column → move the map to that time when it is within the map window
-    box.querySelectorAll("tr.hour td").forEach((td, k) => {
-      td.style.cursor = "pointer";
-      td.onclick = () => setMapTimeByIndex(cols[k].i);
-    });
-    if (nowCol > 0) { const cellEl = box.querySelector("tr.hour td.now"); if (cellEl) box.scrollLeft = Math.max(0, cellEl.offsetLeft - 160); }
-    else box.scrollLeft = 0;
-  }
-
-  // soft temperature + rain areas behind the table, like a forecast meteogram
-  function drawWave(box, cols) {
-    const tds = box.querySelectorAll("tr.temp td");
-    if (!tds.length) return;
-    const table = box.querySelector("table");
-    const x0 = tds[0].offsetLeft, W = table.offsetWidth, H = table.offsetHeight;
-    const tempRow = box.querySelector("tr.temp"), rainRow = box.querySelector("tr.rain");
-    const xs = Array.from(tds).map((td) => td.offsetLeft + td.offsetWidth / 2);
-    const ts = cols.map((c) => c.t);
-    const lo = Math.min(...ts), hi = Math.max(...ts), sp = Math.max(3, hi - lo);
-    const yTop = tempRow.offsetTop - 60, yBase = rainRow.offsetTop;
-    const ty = (v) => yBase - ((v - lo) / sp) * (yBase - yTop - 10) - 6;
-    const smooth = (pts) => {
-      let p = "M" + pts[0][0] + " " + pts[0][1];
-      for (let i = 1; i < pts.length; i++) { const [xa, ya] = pts[i - 1], [xb, yb] = pts[i], mx = (xa + xb) / 2; p += " C" + mx + " " + ya + " " + mx + " " + yb + " " + xb + " " + yb; }
-      return p;
-    };
-    const tp = [[x0, ty(ts[0])]].concat(xs.map((x, i) => [x, ty(ts[i])])).concat([[W, ty(ts[ts.length - 1])]]);
-    const temp = smooth(tp) + " L" + W + " " + yBase + " L" + x0 + " " + yBase + " Z";
-    const rmax = Math.max(4, ...cols.map((c) => c.rain));
-    const rb = rainRow.offsetTop + rainRow.offsetHeight, rh = rainRow.offsetHeight + 16;
-    const rp = [[x0, rb - (cols[0].rain / rmax) * rh]].concat(xs.map((x, i) => [x, rb - (cols[i].rain / rmax) * rh])).concat([[W, rb - (cols[cols.length - 1].rain / rmax) * rh]]);
-    const rain = smooth(rp) + " L" + W + " " + rb + " L" + x0 + " " + rb + " Z";
-    box.insertAdjacentHTML("afterbegin", '<svg class="bgwave" width="' + W + '" height="' + H + '" style="left:0"><path d="' + temp + '" fill="var(--temp-fill)" opacity=".75"/><path d="' + rain + '" fill="var(--rain-fill)" opacity=".9"/></svg>');
   }
 
   // ---------- place handling ----------
@@ -769,13 +843,17 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
     store.set("wx-favs", favs);
     renderHeader();
   };
-  $("sel-step").onchange = (e) => { step = Number(e.target.value); store.set("wx-step", step); if (fc) renderTable(); };
+  function syncStep() { $$(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.step) === step))); }
+  $$(".seg button").forEach((b) => { b.onclick = () => { step = Number(b.dataset.step); store.set("wx-step", step); syncStep(); if (fc) renderDay(); }; });
+  syncStep();
   $("sel-model").onchange = (e) => { model = e.target.value; store.set("wx-model", model); loadForecast(); };
   $("btn-share").onclick = async () => {
     const text = place.name + ": " + (fc && fc.current ? Math.round(fc.current.temperature_2m) + "° " + codeInfo(fc.current.weather_code).t : "พยากรณ์อากาศ");
-    try { if (navigator.share) { await navigator.share({ title: "ฟ้าฝนวันนี้", text, url: location.href }); return; } } catch (_) { return; }
-    try { await navigator.clipboard.writeText(location.href); setStatus("คัดลอกลิงก์แล้ว"); } catch (_) { setStatus(location.href); }
+    try { if (navigator.share) { await navigator.share({ title: "ฟ้าฝนวันนี้", text, url: location.href.split("#")[0] }); return; } } catch (_) { return; }
+    try { await navigator.clipboard.writeText(location.href.split("#")[0]); setStatus("คัดลอกลิงก์แล้ว"); } catch (_) { setStatus(location.href); }
   };
+  $$("[data-search]").forEach((b) => { b.onclick = () => { setView("today"); setTimeout(() => $("q").focus(), 350); }; });
+  $$("[data-go]").forEach((b) => { b.onclick = () => setView(b.dataset.go); });
 
   // ---------- map with a colour weather field ----------
   const GRID = 15;                    // GRID × GRID points per map fetch
@@ -954,7 +1032,7 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
     if (!sc) { $("scale").innerHTML = ""; return; }
     const stops = sc.stops.filter((s) => s[1][3] > 0);
     const g = stops.slice().reverse().map((s, i) => "rgb(" + s[1].slice(0, 3).join(",") + ") " + Math.round((i / (stops.length - 1)) * 100) + "%").join(",");
-    $("scale").innerHTML = "<span>" + sc.unit + '</span><span class="bar" style="background:linear-gradient(' + g + ')"></span><span class="ends"><span>' + sc.hi + "</span><span>" + sc.lo + "</span></span>";
+    $("scale").innerHTML = "<span>" + sc.unit + '</span><span class="row"><span class="ends"><span>' + sc.hi + "</span><span>" + sc.lo + '</span></span><span class="bar" style="background:linear-gradient(' + g + ')"></span></span>';
   }
 
   // ----- wind particles (Windy-style streaks) -----
@@ -972,7 +1050,7 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
       cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + "px"; cv.style.height = H + "px";
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
-    function wanted() { return particlesOn && field && LAYERS[layer].kind === "field" && !reduce; }
+    function wanted() { return particlesOn && field && LAYERS[layer].kind === "field" && !reduce && (view === "today" || view === "map"); }
     function seed(p) { p.x = Math.random() * W; p.y = Math.random() * H; p.age = Math.floor(Math.random() * 80); return p; }
     function toGrid(x, y) {
       const ll = map.containerPointToLatLng([x, y]);
@@ -1035,6 +1113,7 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
   }
 
   // one slider drives whichever layer is showing
+  function fillSlider() { const sl = $("tslider"), m = Number(sl.max) || 1; sl.style.setProperty("--p", (Number(sl.value) / m * 100) + "%"); }
   function setupSlider() {
     const sl = $("tslider"), kind = LAYERS[layer].kind;
     $("tnow").hidden = true;
@@ -1053,13 +1132,15 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
       if (layer === "accum" && tIndex < 0) tIndex = Math.min(now + 24, max);
       if (tIndex < 0 || tIndex > max) tIndex = now;
       sl.value = String(tIndex);
-      $("tnow").style.left = (now / max * 100) + "%";
+      $("tnow").style.left = "calc(10px + (100% - 20px) * " + (now / max) + ")";
       $("tnow").hidden = false;
     }
+    fillSlider();
   }
   function frame() {
     const kind = LAYERS[layer].kind;
     if (kind === "radar") showRadar(tIndex); else if (kind === "sat") showSat(); else { drawField(); }
+    fillSlider();
   }
 
   function applyLayer() {
@@ -1092,32 +1173,57 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
     if (k >= 0 && k <= Number($("tslider").max)) { tIndex = k; $("tslider").value = String(k); frame(); }
   }
   $("tslider").addEventListener("input", (e) => { tIndex = Number(e.target.value); frame(); });
-  function stopPlay() { if (playTimer) { clearInterval(playTimer); playTimer = null; } $("play").textContent = "▶"; }
+  const PLAY = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z" fill="currentColor"/></svg>';
+  const PAUSE = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h4v16H6zM14 4h4v16h-4z" fill="currentColor"/></svg>';
+  function stopPlay() { if (playTimer) { clearInterval(playTimer); playTimer = null; } $("play").innerHTML = PLAY; $("play").setAttribute("aria-label", "เล่นภาพเคลื่อนไหว"); }
   $("play").onclick = () => {
     if (playTimer) { stopPlay(); return; }
-    $("play").textContent = "❚❚";
+    $("play").innerHTML = PAUSE; $("play").setAttribute("aria-label", "หยุดภาพเคลื่อนไหว");
     playTimer = setInterval(() => {
       tIndex = (tIndex + 1) % (Number($("tslider").max) + 1);
       $("tslider").value = String(tIndex);
       frame();
     }, LAYERS[layer].kind === "field" ? 450 : 700);
   };
+  $("play").innerHTML = PLAY;
 
-  // layer menu (drawer)
+  // layer menu (bottom sheet)
   function buildMenu() {
     $("lgrid").innerHTML = Object.entries(LAYERS).map(([k, v]) =>
-      '<button type="button" class="lcard" data-layer="' + k + '" aria-pressed="' + (k === layer) + '"><span class="th" style="background:' + v.thumb + '"><svg width="38" height="34" viewBox="0 0 38 34" aria-hidden="true">' + v.icon + "</svg></span><span>" + v.name + "</span></button>").join("");
+      '<button type="button" class="lcard" data-layer="' + k + '" aria-pressed="' + (k === layer) + '"><span class="th" style="background:' + v.thumb + '"><svg width="34" height="30" viewBox="0 0 38 34" aria-hidden="true">' + v.icon + "</svg></span><span>" + v.name + "</span></button>").join("");
     $("lgrid").querySelectorAll(".lcard").forEach((b) => {
       b.onclick = () => { layer = b.dataset.layer; store.set("wx-layer", layer); closeMenu(); if (map) applyLayer(); };
     });
     $("tg-particles").checked = particlesOn;
   }
-  function openMenu() { $("drawer").hidden = false; $("scrim").hidden = false; requestAnimationFrame(() => $("drawer").classList.add("open")); $("drawer").querySelector(".lcard[aria-pressed='true']")?.focus(); }
-  function closeMenu() { $("drawer").classList.remove("open"); $("scrim").hidden = true; setTimeout(() => { $("drawer").hidden = true; }, 220); }
+  function openMenu() {
+    $("sheet").hidden = false; $("scrim").hidden = false;
+    requestAnimationFrame(() => requestAnimationFrame(() => { $("sheet").classList.add("open"); $("scrim").classList.add("open"); }));
+    setTimeout(() => $("sheet").querySelector(".lcard[aria-pressed='true']")?.focus({ preventScroll: true }), 120);
+  }
+  function closeMenu() {
+    if ($("sheet").hidden) return;
+    $("sheet").classList.remove("open"); $("scrim").classList.remove("open");
+    setTimeout(() => { $("sheet").hidden = true; $("scrim").hidden = true; }, 320);
+  }
   $("btn-layers").onclick = openMenu;
-  $("drawer-close").onclick = closeMenu;
+  $("btn-layers2").onclick = () => { setView("map"); setTimeout(openMenu, 200); };
+  $("btn-full").onclick = () => setView("map");
+  $("btn-back").onclick = () => setView(mapBack);
+  $("sheet-close").onclick = closeMenu;
   $("scrim").onclick = closeMenu;
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("drawer").hidden) closeMenu(); });
+  // swipe the sheet down to close it
+  (() => {
+    let y0 = null;
+    const sh = $("sheet");
+    sh.addEventListener("touchstart", (e) => { if (sh.scrollTop <= 0) y0 = e.touches[0].clientY; }, { passive: true });
+    sh.addEventListener("touchmove", (e) => { if (y0 == null) return; const dy = e.touches[0].clientY - y0; if (dy > 0) { sh.style.transition = "none"; sh.style.transform = "translateY(" + dy + "px)"; } }, { passive: true });
+    sh.addEventListener("touchend", (e) => { if (y0 == null) return; const dy = e.changedTouches[0].clientY - y0; y0 = null; sh.style.transition = ""; sh.style.transform = ""; if (dy > 80) closeMenu(); });
+  })();
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    if (!$("sheet").hidden) closeMenu(); else if (view === "map") setView(mapBack);
+  });
   $("tg-particles").onchange = (e) => { particlesOn = e.target.checked; store.set("wx-particles", particlesOn); particles.reset(); };
   buildMenu();
 
@@ -1126,9 +1232,7 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
   let floodSeq = 0;
   async function loadFlood() {
     const seq = ++floodSeq;
-    const box = $("flood");
-    box.hidden = false;
-    $("flood-body").innerHTML = '<div class="skeleton" style="height:160px;border-radius:10px"></div>';
+    $("flood-body").innerHTML = '<div class="skeleton" style="height:420px"></div>';
     const lat = place.lat.toFixed(4), lon = place.lon.toFixed(4);
     const rainP = fetch("https://api.open-meteo.com/v1/forecast?" + new URLSearchParams({ latitude: lat, longitude: lon, timezone: "auto", past_days: "7", forecast_days: "8", daily: "precipitation_sum", models: model }))
       .then((r) => (r.ok ? r.json() : null)).catch(() => null);
@@ -1136,7 +1240,7 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
       .then((r) => (r.ok ? r.json() : null)).catch(() => null);
     const [rain, river] = await Promise.all([rainP, riverP]);
     if (seq !== floodSeq) return;
-    if (!rain || !rain.daily) { $("flood-body").innerHTML = '<p class="muted">โหลดข้อมูลฝนสะสมไม่ได้ ลองใหม่อีกครั้ง</p>'; $("flood-level").textContent = ""; return; }
+    if (!rain || !rain.daily) { $("flood-body").innerHTML = '<div class="card fbox"><p class="muted">โหลดข้อมูลฝนสะสมไม่ได้ ลองใหม่อีกครั้ง</p></div>'; return; }
     renderFlood(rain.daily, river && river.daily ? river.daily : null);
   }
 
@@ -1186,17 +1290,23 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
   }
 
   const FLOOD_LV = [
-    { name: "ความเสี่ยงต่ำ", cls: "lv0", tip: "ใช้ชีวิตได้ตามปกติ" },
-    { name: "เฝ้าระวัง", cls: "lv1", tip: "ติดตามข่าวพยากรณ์ ระวังน้ำท่วมขังในที่ลุ่มต่ำ" },
-    { name: "เสี่ยงสูง", cls: "lv2", tip: "เตรียมยกของขึ้นที่สูง เตรียมเส้นทางอพยพ ติดตามประกาศจากหน่วยงานท้องถิ่น" },
-    { name: "เสี่ยงสูงมาก", cls: "lv3", tip: "ระวังน้ำป่าไหลหลากและน้ำท่วมฉับพลัน หลีกเลี่ยงริมน้ำและที่ลาดเชิงเขา ทำตามประกาศของทางการ" },
+    { name: "ความเสี่ยงต่ำ", tip: "ใช้ชีวิตได้ตามปกติ" },
+    { name: "เฝ้าระวัง", tip: "ติดตามข่าวพยากรณ์ ระวังน้ำท่วมขังในที่ลุ่มต่ำ" },
+    { name: "เสี่ยงสูง", tip: "เตรียมยกของขึ้นที่สูง เตรียมเส้นทางอพยพ ติดตามประกาศจากหน่วยงานท้องถิ่น" },
+    { name: "เสี่ยงสูงมาก", tip: "ระวังน้ำป่าไหลหลากและน้ำท่วมฉับพลัน หลีกเลี่ยงริมน้ำและที่ลาดเชิงเขา ทำตามประกาศของทางการ" },
   ];
+
+  function gaugeSvg(lv) {
+    const segs = ["M20 90 A70 70 0 0 1 40.5 40.5", "M42 39 A70 70 0 0 1 88.5 20", "M91.5 20 A70 70 0 0 1 138 39", "M139.5 40.5 A70 70 0 0 1 160 90"];
+    return '<svg width="160" height="96" viewBox="0 0 180 106" aria-hidden="true">' +
+      segs.map((d, i) => '<path d="' + d + '" fill="none" stroke="' + LV_COL[i] + '" stroke-width="14" stroke-opacity="' + (i <= lv ? 1 : 0.25) + '"/>').join("") +
+      '<path class="needle" style="transform:rotate(' + (lv * 45 + 22.5) + 'deg)" d="M90 90 L38 90" stroke="#fff" stroke-width="4" stroke-linecap="round"/>' +
+      '<circle cx="90" cy="90" r="8" fill="#fff"/><circle cx="90" cy="90" r="3" fill="#0B1220"/></svg>';
+  }
 
   function renderFlood(days, river) {
     const a = assessFlood(days, river);
-    const L0 = FLOOD_LV[a.level];
-    const lvEl = $("flood-level");
-    lvEl.textContent = L0.name; lvEl.className = "risk " + L0.cls;
+    const L0 = FLOOD_LV[a.level], col = LV_COL[a.level];
     const tile = (label, v, hot) => '<div class="ftile' + (hot ? " hot" : "") + '"><span>' + label + "</span><b>" + v.toFixed(v >= 100 ? 0 : 1) + "<small> มม.</small></b></div>";
     // daily bars: 7 days back + 7 days ahead
     const from = Math.max(0, a.today - 7), to = Math.min(a.p.length, a.today + 7);
@@ -1208,16 +1318,16 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
     [35, 90].forEach((th) => { if (th < max) g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(th) + '" y2="' + y(th) + '" class="th"/><text x="' + (W - R) + '" y="' + (y(th) - 3) + '" text-anchor="end" class="thl">' + (th === 35 ? "ฝนหนัก 35" : "หนักมาก 90") + "</text>"; });
     for (let i = from; i < to; i++) {
       const v = a.p[i], x = L + (i - from) * bw, past = i < a.today;
-      const h = Math.max(v > 0 ? 1.5 : 0, (H - T - B) - (y(v) - T));
-      const col = v >= 90 ? "var(--fl3)" : v >= 35 ? "var(--fl2)" : v >= 10 ? "var(--fl1)" : "var(--fl0)";
-      g += '<rect x="' + (x + 2) + '" y="' + (H - B - h) + '" width="' + (bw - 4) + '" height="' + h + '" rx="2" fill="' + col + '" opacity="' + (past ? 0.55 : 1) + '"><title>' + a.t[i] + ": " + v.toFixed(1) + " มม.</title></rect>";
-      if (v >= 1) g += '<text x="' + (x + bw / 2) + '" y="' + (H - B - h - 3) + '" text-anchor="middle" class="bv">' + Math.round(v) + "</text>";
+      const h = Math.max(v > 0 ? 2 : 0, (H - T - B) - (y(v) - T));
+      const c = v >= 90 ? "#FF5A5F" : v >= 35 ? "#FF8A4C" : v >= 10 ? "#5AB0FF" : "#8CC8FF";
+      g += '<rect x="' + (x + 3) + '" y="' + (H - B - h) + '" width="' + (bw - 6) + '" height="' + h + '" rx="4" fill="' + c + '" opacity="' + (past ? 0.4 : 1) + '"><title>' + a.t[i] + ": " + v.toFixed(1) + " มม.</title></rect>";
+      if (v >= 1) g += '<text x="' + (x + bw / 2) + '" y="' + (H - B - h - 4) + '" text-anchor="middle" class="bv">' + Math.round(v) + "</text>";
       const d = parseLocal(a.t[i]);
       g += '<text x="' + (x + bw / 2) + '" y="' + (H - 12) + '" text-anchor="middle"' + (i === a.today ? ' class="today"' : "") + ">" + (i === a.today ? "วันนี้" : d.d) + "</text>";
     }
     const xt = L + (a.today - from) * bw;
     g += '<line x1="' + xt + '" x2="' + xt + '" y1="' + T + '" y2="' + (H - B) + '" class="nowl"/>';
-    g += '<text x="' + (xt - 4) + '" y="' + (T + 8) + '" text-anchor="end" class="side">ย้อนหลัง</text><text x="' + (xt + 4) + '" y="' + (T + 8) + '" class="side">คาดการณ์</text>';
+    g += '<text x="' + (xt - 4) + '" y="' + (T + 8) + '" text-anchor="end">ย้อนหลัง</text><text x="' + (xt + 4) + '" y="' + (T + 8) + '">คาดการณ์</text>';
     let riverHtml = "";
     if (a.rv) {
       const rv = a.rv, s0 = Math.max(0, rv.ti - 30), s1 = Math.min(rv.q.length, (rv.ti > 0 ? rv.ti : 60) + 21);
@@ -1226,64 +1336,91 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
       const rmax = Math.max(rv.med * 2.2, ...vals) * 1.08;
       const ry = (v) => rtp + (RH - rtp - rb) * (1 - v / rmax), rx = (i) => rl + ((i - s0) / (m - 1)) * (RW - rl - rr);
       const line = (arr, a0, a1) => { let d = ""; for (let i = a0; i < a1; i++) if (arr[i] != null) d += (d ? " L" : "M") + rx(i).toFixed(1) + " " + ry(arr[i]).toFixed(1); return d; };
-      let rg = "";
+      let rg = '<defs><linearGradient id="rvf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5AB0FF" stop-opacity=".35"/><stop offset="1" stop-color="#5AB0FF" stop-opacity="0"/></linearGradient></defs>';
       [rv.med, rv.med * 2, rv.med * 4].forEach((v, k) => { if (v < rmax) rg += '<line x1="' + rl + '" x2="' + (RW - rr) + '" y1="' + ry(v) + '" y2="' + ry(v) + '" class="' + (k ? "th" : "gl") + '"/><text x="' + (rl - 4) + '" y="' + (ry(v) + 3) + '" text-anchor="end">' + (k ? k * 2 + "×" : "ปกติ") + "</text>"; });
       const split = Math.max(s0, rv.ti);
+      const all = line(rv.q, s0, s1);
+      if (all) rg += '<path d="' + all + " L" + rx(s1 - 1).toFixed(1) + " " + (RH - rb) + " L" + rx(s0).toFixed(1) + " " + (RH - rb) + ' Z" fill="url(#rvf)"/>';
       rg += '<path d="' + line(rv.qmax, split, s1) + '" class="rmax"/>';
       rg += '<path d="' + line(rv.q, s0, split + 1) + '" class="rpast"/><path d="' + line(rv.q, split, s1) + '" class="rfut"/>';
       if (rv.ti >= s0) rg += '<line x1="' + rx(rv.ti) + '" x2="' + rx(rv.ti) + '" y1="' + rtp + '" y2="' + (RH - rb) + '" class="nowl"/>';
+      if (rv.peakAt >= s0 && rv.peakAt < s1 && rv.qmax[rv.peakAt] != null) rg += '<circle cx="' + rx(rv.peakAt).toFixed(1) + '" cy="' + ry(rv.qmax[rv.peakAt]).toFixed(1) + '" r="4" fill="#FFC24A"/>';
       for (let i = s0; i < s1; i += 10) { const d = parseLocal(rv.time[i]); rg += '<text x="' + rx(i) + '" y="' + (RH - 6) + '" text-anchor="middle">' + d.d + " " + MON[d.m - 1] + "</text>"; }
-      riverHtml = '<div class="fsub">ปริมาณน้ำในแม่น้ำใกล้จุดนี้ <span class="muted">(ลูกบาศก์เมตร/วินาที · ตอนนี้ ' + (rv.now != null ? rv.now.toFixed(rv.now < 10 ? 1 : 0) : "–") + " · ปกติ " + rv.med.toFixed(rv.med < 10 ? 1 : 0) + ")</span></div>" +
+      const rc = rv.ratio >= 4 ? "#FF8A4C" : rv.ratio >= 2 ? "#FFC24A" : "#4CD69A";
+      riverHtml = '<div class="card fbox"><div class="fbox-h"><span class="ttl">น้ำในแม่น้ำใกล้จุดนี้</span><span class="muted">ลบ.ม./วินาที</span></div>' +
+        '<div class="river-top"><b style="color:' + rc + '">' + rv.ratio.toFixed(1) + '×</b><span class="muted small">ของระดับปกติ ช่วงสูงสุดใน 14 วัน · ตอนนี้ ' + (rv.now != null ? rv.now.toFixed(rv.now < 10 ? 1 : 0) : "–") + " · ปกติ " + rv.med.toFixed(rv.med < 10 ? 1 : 0) + "</span></div>" +
         '<div class="fchart"><svg viewBox="0 0 ' + RW + " " + RH + '" role="img" aria-label="กราฟปริมาณน้ำในแม่น้ำ">' + rg + "</svg></div>" +
-        '<div class="flegend"><span><i class="lp"></i>ที่ผ่านมา</span><span><i class="lf"></i>คาดการณ์</span><span><i class="lm"></i>กรณีน้ำมากสุด</span></div>';
+        '<div class="legend"><span><i style="background:#6B8FB8"></i>ที่ผ่านมา</span><span><i style="background:#5AB0FF"></i>คาดการณ์</span><span><i style="background:#FFC24A"></i>กรณีน้ำมากสุด</span></div></div>';
     } else {
-      riverHtml = '<p class="muted small">ไม่พบแม่น้ำสายหลักใกล้จุดนี้ในแบบจำลอง GloFAS จึงประเมินจากปริมาณฝนอย่างเดียว</p>';
+      riverHtml = '<div class="card fbox"><p class="muted small">ไม่พบแม่น้ำสายหลักใกล้จุดนี้ในแบบจำลอง GloFAS จึงประเมินจากปริมาณฝนอย่างเดียว</p></div>';
     }
     $("flood-body").innerHTML =
-      '<p class="ftip ' + L0.cls + '">' + L0.tip + "</p>" +
-      '<ul class="fwhy">' + a.why.map((w) => '<li class="lv' + w.lv + '">' + w.text + "</li>").join("") + "</ul>" +
+      '<div class="fl-gauge" style="--lv:' + col + '">' + gaugeSvg(a.level) +
+      '<div><div class="lvn">ระดับ ' + a.level + " จาก 3</div><div class=\"lvt\">" + L0.name + '</div><div class="tip">' + L0.tip + "</div></div></div>" +
+      '<div class="card why">' + a.why.map((w) => '<div><i style="background:' + LV_COL[w.lv] + '"></i><span>' + w.text + "</span></div>").join("") + "</div>" +
       '<div class="ftiles">' +
       tile("ฝนเมื่อวาน", a.s.past1) + tile("3 วันที่ผ่านมา", a.s.past3, a.s.past3 >= 60) + tile("7 วันที่ผ่านมา", a.s.past7, a.s.past7 >= 150) +
       tile("คาดวันนี้", a.s.next1, a.s.next1 >= 35) + tile("คาด 3 วัน", a.s.next3, a.s.next3 >= 60) + tile("คาด 7 วัน", a.s.next7, a.s.next7 >= 150) +
       "</div>" +
-      '<div class="fsub">ฝนรายวัน 7 วันย้อนหลัง และ 7 วันข้างหน้า <span class="muted">(มม.)</span></div>' +
-      '<div class="fchart"><svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="กราฟฝนรายวัน">' + g + "</svg></div>" +
+      '<div class="card fbox"><div class="fbox-h"><span class="ttl">ฝนรายวัน 14 วัน</span><span class="muted">มม.</span></div>' +
+      '<div class="fchart"><svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="กราฟฝนรายวัน 7 วันย้อนหลังและ 7 วันข้างหน้า">' + g + "</svg></div></div>" +
       riverHtml +
-      '<p class="muted small">เป็นการประเมินคร่าวๆ จากแบบจำลองพยากรณ์ ไม่ใช่ประกาศทางการ ติดตามประกาศจริงที่ <a href="https://www.tmd.go.th/" target="_blank" rel="noopener">กรมอุตุนิยมวิทยา</a> · <a href="https://www.thaiwater.net/" target="_blank" rel="noopener">คลังข้อมูลน้ำแห่งชาติ</a> · <a href="https://www.disaster.go.th/" target="_blank" rel="noopener">ปภ.</a></p>';
-    // map chip: show a flood note when risk is raised
-    if (a.level >= 1) {
-      $("chip-flood").hidden = false;
+      '<p class="note fn">เป็นการประเมินคร่าวๆ จากแบบจำลองพยากรณ์ ไม่ใช่ประกาศทางการ ติดตามประกาศจริงที่ <a href="https://www.tmd.go.th/" target="_blank" rel="noopener">กรมอุตุนิยมวิทยา</a> · <a href="https://www.thaiwater.net/" target="_blank" rel="noopener">คลังข้อมูลน้ำแห่งชาติ</a> · <a href="https://www.disaster.go.th/" target="_blank" rel="noopener">ปภ.</a></p>';
+    // map chip, today card and tab badge when risk is raised
+    const raised = a.level >= 1;
+    $("chip-flood").hidden = !raised;
+    $("tab-flood-bd").hidden = !raised;
+    $("alert-flood").hidden = !raised;
+    if (raised) {
       $("flood-chip-text").textContent = "น้ำท่วม: " + L0.name;
-      $("chip-flood").querySelector(".badge").className = "badge flood " + L0.cls;
-    } else $("chip-flood").hidden = true;
+      $("chip-flood").className = "chip flood lv" + a.level;
+      $("tab-flood-bd").style.background = col;
+      const af = $("alert-flood");
+      af.style.background = "color-mix(in srgb, " + col + " 13%, transparent)";
+      af.style.borderColor = "color-mix(in srgb, " + col + " 45%, transparent)";
+      $("alert-flood-ic").style.background = "color-mix(in srgb, " + col + " 25%, transparent)";
+      $("alert-flood-ic").style.color = col;
+      $("alert-flood-t").textContent = "น้ำท่วม: " + L0.name;
+      $("alert-flood-s").textContent = a.why[0] ? a.why[0].text : L0.tip;
+    }
   }
-  $("chip-flood").onclick = () => $("flood").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("chip-flood").onclick = () => setView("flood");
+  $("alert-flood").onclick = () => setView("flood");
 
-  // ---------- full-screen map ----------
-  function setMapFull(on) {
-    document.body.classList.toggle("mapfull", on);
-    $("btn-full").setAttribute("aria-pressed", String(on));
-    $("btn-full").setAttribute("aria-label", on ? "ย่อแผนที่" : "ขยายแผนที่เต็มจอ");
-    $("btn-full").innerHTML = on ? FULL_OFF : FULL_ON;
-    if (map) setTimeout(() => { map.invalidateSize(); particles.reset(); }, 60);
+  // ---------- views (tab bar) ----------
+  function setView(v, fromHistory) {
+    if (!["today", "forecast", "flood", "map"].includes(v)) v = "today";
+    if (v === view) return;
+    const apply = () => {
+      if (v === "map" && view !== "map") mapBack = view;
+      if (view === "map") { stopPlay(); closeMenu(); }
+      view = v;
+      document.body.dataset.view = v;
+      $$(".tab").forEach((t) => t.setAttribute("aria-current", t.dataset.v === v ? "page" : "false"));
+      if (v !== "map") window.scrollTo(0, 0);
+      if (map && (v === "today" || v === "map")) { map.invalidateSize(); setTimeout(() => { map.invalidateSize(); particles.reset(); }, 60); }
+      else particles.pause();
+      if (v === "forecast") requestAnimationFrame(() => centerChip(false));
+    };
+    if (document.startViewTransition && !REDUCE) document.startViewTransition(apply); else apply();
+    if (!fromHistory) history.pushState({ v }, "", v === "today" ? location.pathname + location.search : "#" + v);
   }
-  const FULL_ON = '<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
-  const FULL_OFF = '<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
-  $("btn-full").innerHTML = FULL_ON;
-  $("btn-full").onclick = () => setMapFull(!document.body.classList.contains("mapfull"));
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.body.classList.contains("mapfull") && $("drawer").hidden) setMapFull(false); });
+  $$(".tab").forEach((t) => { t.onclick = () => setView(t.dataset.v); });
+  window.addEventListener("popstate", (e) => setView((e.state && e.state.v) || location.hash.slice(1) || "today", true));
 
   let lastLoad = Date.now();
   document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - lastLoad > 15 * 60 * 1000) { lastLoad = Date.now(); loadForecast(); if (map) { if (layer === "radar") loadRadar(); else if (LAYERS[layer].kind === "field") ensureField(true); } } });
-  let rt = null;
-  window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (fc) renderTable(); }, 200); });
 
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 
+  const startView = location.hash.slice(1);
+  $$(".tab").forEach((t) => t.setAttribute("aria-current", t.dataset.v === "today" ? "page" : "false"));
+  history.replaceState({ v: "today" }, "", location.pathname + location.search);
   renderHeader();
   drawScale();
   initMap();
   loadForecast();
+  if (startView && startView !== "today") setView(startView);
 })();
 </script>
 </body>

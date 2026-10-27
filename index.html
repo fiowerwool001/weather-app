@@ -89,9 +89,36 @@ button { cursor: pointer; }
 .leaflet-container { font-family: var(--font); }
 .basemap { filter: saturate(.45) brightness(1.03) contrast(.95); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .basemap { filter: saturate(.35) brightness(.72) contrast(1.1); } }
-.layers { position: absolute; top: 10px; left: max(10px, env(safe-area-inset-left, 0px)); z-index: 500; display: flex; gap: 6px; flex-wrap: wrap; max-width: calc(100% - 70px); }
-.layers button { border: 0; border-radius: 999px; padding: 5px 12px; font-size: .82rem; background: rgba(30,32,36,.78); color: #fff; backdrop-filter: blur(4px); }
-.layers button[aria-pressed="true"] { background: #fff; color: #1f2328; font-weight: 600; }
+.layerbtn { position: absolute; top: 10px; left: max(10px, env(safe-area-inset-left, 0px)); z-index: 500; display: flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; padding: 4px 14px 4px 4px; font-size: .9rem; font-weight: 500; background: rgba(30,32,36,.82); color: #fff; backdrop-filter: blur(4px); box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+.layerbtn .ic { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); display: grid; place-items: center; }
+canvas.particles { position: absolute; left: 0; top: 0; z-index: 420; pointer-events: none; }
+.slwrap { flex: 1; min-width: 0; position: relative; display: flex; }
+.slwrap input { width: 100%; }
+.tnow { position: absolute; top: -6px; width: 2px; height: 8px; background: #fff; transform: translateX(-1px); pointer-events: none; }
+.scrim { position: fixed; inset: 0; z-index: 1190; background: rgba(0,0,0,.35); }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 1200; width: min(380px, 86vw); background: #3b3e43; color: #f2f3f4; overflow-y: auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) max(16px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) 16px;
+  transform: translateX(100%); transition: transform .22s ease; display: grid; gap: 16px; align-content: start; }
+.drawer.open { transform: none; }
+.drawer-head { display: flex; justify-content: space-between; align-items: center; }
+.drawer-head h2 { margin: 0; font-size: 1.15rem; font-weight: 600; }
+.xbtn { width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--accent); color: #fff; font-size: 1.1rem; }
+.lgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 10px; }
+.lcard { background: none; border: 0; color: inherit; padding: 0; display: grid; gap: 6px; text-align: left; font-size: .86rem; line-height: 1.25; }
+.lcard .th { aspect-ratio: 4 / 3; border-radius: 10px; display: grid; place-items: center; border: 3px solid transparent; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.lcard .th svg { filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
+.lcard[aria-pressed="true"] .th { border-color: #e9c46a; }
+.lcard[aria-pressed="true"] { color: #e9c46a; }
+.dsec { background: #4d4b63; border-radius: 12px; padding: 12px 14px; display: grid; gap: 10px; }
+.dlabel { font-size: .85rem; letter-spacing: .04em; opacity: .8; }
+.tgl { display: flex; align-items: center; gap: 12px; font-size: 1rem; cursor: pointer; }
+.tgl input { position: absolute; opacity: 0; }
+.tgl .sw { width: 44px; height: 26px; border-radius: 13px; border: 2px solid #ddd; position: relative; flex: none; transition: background .15s; }
+.tgl .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #ddd; transition: transform .15s; }
+.tgl input:checked + .sw { background: #e9c46a; border-color: #e9c46a; }
+.tgl input:checked + .sw::after { transform: translateX(18px); background: #fff; }
+.tgl input:focus-visible + .sw { outline: 2px solid #4da3ff; outline-offset: 2px; }
+.dnote { margin: 0; font-size: .78rem; opacity: .7; }
 .chips { position: absolute; left: max(12px, env(safe-area-inset-left, 0px)); bottom: 64px; z-index: 500; display: grid; gap: 10px; }
 .chip { display: flex; align-items: center; gap: 12px; color: #fff; font-size: 1rem; font-weight: 500; text-shadow: 0 1px 3px rgba(0,0,0,.7); background: none; border: 0; padding: 0; text-align: left; }
 .chip .badge { width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,.35); text-shadow: none; flex: none; }
@@ -218,12 +245,8 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
 
 <div class="mapwrap">
   <div id="map" role="application" aria-label="แผนที่สภาพอากาศ แตะเพื่อดูพยากรณ์ตรงจุดนั้น"></div>
-  <div class="layers" role="group" aria-label="ชั้นข้อมูลแผนที่">
-    <button type="button" data-layer="radar" aria-pressed="true">เรดาร์ฝน</button>
-    <button type="button" data-layer="rain" aria-pressed="false">ฝนและเมฆ</button>
-    <button type="button" data-layer="temp" aria-pressed="false">อุณหภูมิ</button>
-    <button type="button" data-layer="wind" aria-pressed="false">ลม</button>
-  </div>
+  <button type="button" class="layerbtn" id="btn-layers" aria-haspopup="dialog" aria-controls="drawer"><span class="ic" id="layer-ic"></span><span id="layer-name">เรดาร์</span>
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5z M2 12l10 5 10-5 M2 16l10 5 10-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></button>
   <div class="scale" id="scale"></div>
   <div class="maploading" id="maploading" hidden>กำลังโหลดแผนที่สภาพอากาศ…</div>
   <div class="chips">
@@ -232,10 +255,21 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
   </div>
   <div class="timebar">
     <button type="button" id="play" aria-label="เล่นแผนที่ตามเวลา">▶</button>
-    <input type="range" id="tslider" min="0" max="47" step="1" value="0" aria-label="เวลาบนแผนที่">
+    <span class="slwrap"><input type="range" id="tslider" min="0" max="47" step="1" value="0" aria-label="เวลาบนแผนที่"><span class="tnow" id="tnow" hidden></span></span>
     <span class="tl" id="tlabel">–</span>
   </div>
 </div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="เลือกชั้นแผนที่" hidden>
+  <div class="drawer-head"><h2>ชั้นแผนที่</h2><button type="button" class="xbtn" id="drawer-close" aria-label="ปิด">✕</button></div>
+  <div class="lgrid" id="lgrid"></div>
+  <div class="dsec">
+    <div class="dlabel">แสดงบนแผนที่</div>
+    <label class="tgl"><input type="checkbox" id="tg-particles"><span class="sw"></span>ภาพเคลื่อนไหวของอนุภาคลม</label>
+  </div>
+  <p class="dnote">ชั้นพยากรณ์เลื่อนดูได้ตั้งแต่ 24 ชม. ที่แล้วถึงล่วงหน้า 48 ชม. · เรดาร์มีข้อมูลย้อนหลังราว 2 ชม. · ภาพดาวเทียมเป็นภาพรายวันจาก NASA</p>
+</aside>
 
 <nav class="days" aria-label="เลือกวัน">
   <div class="days-scroll" id="days-scroll">
@@ -363,9 +397,12 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
     return stops[stops.length - 1][1];
   }
   const SCALES = {
+    cloudsoft: { stops: [[0, [255, 255, 255, 0]], [30, [235, 240, 248, 40]], [70, [215, 222, 235, 120]], [100, [200, 208, 222, 175]]] },
+    accum: { unit: "มม. สะสม", lo: "0", hi: "100+", stops: [[0, [0, 0, 0, 0]], [1, [120, 190, 240, 150]], [5, [60, 140, 220, 190]], [15, [80, 190, 110, 205]], [30, [240, 210, 70, 215]], [60, [235, 130, 40, 225]], [100, [180, 40, 40, 235]]] },
+    waves: { unit: "ความสูงคลื่น ม.", lo: "0", hi: "4+", stops: [[0, [60, 100, 210, 170]], [0.5, [70, 140, 230, 190]], [1, [100, 90, 220, 200]], [2, [150, 60, 200, 210]], [3, [200, 60, 170, 220]], [4.5, [240, 80, 120, 230]]] },
     radar: { unit: "ความแรงฝน", lo: "อ่อน", hi: "หนัก", stops: [[0, [140, 210, 250, 255]], [1, [40, 140, 230, 255]], [2, [20, 90, 200, 255]], [3, [250, 230, 60, 255]], [4, [250, 150, 30, 255]], [5, [220, 40, 40, 255]], [6, [150, 20, 90, 255]]] },
     rain: { unit: "มม./ชม.", lo: "0", hi: "20+", stops: [[0, [0, 0, 0, 0]], [0.1, [120, 200, 255, 150]], [1, [40, 140, 255, 200]], [3, [40, 80, 230, 215]], [8, [120, 60, 220, 225]], [15, [200, 50, 190, 230]], [30, [240, 50, 60, 235]]] },
-    cloud: { stops: [[0, [255, 255, 255, 0]], [30, [235, 240, 248, 40]], [70, [215, 222, 235, 120]], [100, [200, 208, 222, 175]]] },
+    cloud: { unit: "เมฆ %", lo: "0", hi: "100", stops: [[0, [90, 110, 80, 60]], [25, [140, 150, 130, 120]], [50, [185, 190, 185, 170]], [75, [220, 223, 228, 210]], [100, [250, 250, 252, 235]]] },
     temp: { unit: "°C", lo: "10°", hi: "38°", stops: [[10, [80, 60, 200, 190]], [16, [60, 130, 230, 190]], [21, [60, 190, 200, 190]], [25, [90, 200, 110, 190]], [28, [200, 220, 70, 195]], [31, [250, 185, 50, 200]], [34, [240, 110, 40, 205]], [38, [200, 30, 60, 210]]] },
     wind: { unit: "km/h", lo: "0", hi: "60+", stops: [[0, [70, 110, 200, 120]], [8, [70, 170, 220, 150]], [16, [80, 200, 140, 170]], [25, [210, 220, 70, 190]], [35, [245, 160, 40, 205]], [50, [230, 70, 50, 215]], [65, [170, 30, 120, 220]]] },
   };
@@ -686,16 +723,27 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
 
   // ---------- map with a colour weather field ----------
   const GRID = 13;                    // GRID × GRID points per map fetch
-  let field = null;                   // {bounds, zoom, times, start, rain[], cloud[], temp[], wind[]}
-  let overlay = null, tIndex = 0, playTimer = null, fieldSeq = 0;
+  const LAYERS = {
+    radar: { name: "เรดาร์ภาพอากาศ", kind: "radar", thumb: "radial-gradient(circle at 30% 60%,#f33 0 8%,#fb3 14%,#4c4 26%,#3ae 40%,transparent 55%),radial-gradient(circle at 75% 35%,#fd3 0 6%,#4c4 16%,#3ae 30%,transparent 45%),linear-gradient(135deg,#2e5a3a,#3a6f8f)", icon: '<path d="M14 26a8 8 0 1 1 6-13.5A6 6 0 1 1 22 26z M18 20l-3 6h4l-2 6 6-8h-4l2-4z" fill="#fff"/>' },
+    sat: { name: "ดาวเทียม", kind: "sat", thumb: "radial-gradient(ellipse at 30% 40%,#fff 0 18%,transparent 40%),radial-gradient(ellipse at 70% 70%,#eef 0 14%,transparent 35%),linear-gradient(135deg,#2a4f7a,#3e6b3a 60%,#7b6a45)", icon: '<path d="M9 13l6-6 4 4-6 6z M21 19l6-6 4 4-6 6z M15 17l6 6 M17 15l4 4 M9 27a6 6 0 0 0 6-6" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/>' },
+    wind: { name: "ลม", kind: "field", thumb: "repeating-linear-gradient(160deg,rgba(255,255,255,.35) 0 2px,transparent 2px 10px),radial-gradient(circle at 70% 70%,#c33 0 6%,#f93 12%,#dd4 22%,transparent 40%),linear-gradient(135deg,#3e7fc0,#4cbf8a 55%,#3e9fc0)", icon: '<path d="M8 16h14a4 4 0 1 0-4-4 M8 22h18a4 4 0 1 1-4 4" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round"/>' },
+    rain: { name: "ฝน, เมฆ", kind: "field", thumb: "radial-gradient(circle at 40% 55%,#a3c 0 7%,#27e 16%,#7cf 28%,transparent 42%),linear-gradient(135deg,#8995a5,#5d6876)", icon: '<path d="M18 6l-6 11a6.5 6.5 0 1 0 12 0z" fill="#fff"/>' },
+    temp: { name: "อุณหภูมิ", kind: "field", thumb: "linear-gradient(135deg,#d5d34a,#f2a53a 40%,#e5602e 70%,#b62b3a)", icon: '<path d="M16 6a3 3 0 0 1 6 0v13a6 6 0 1 1-6 0z" fill="#fff"/><circle cx="19" cy="24" r="3" fill="#e5602e"/>' },
+    cloud: { name: "เมฆ", kind: "field", thumb: "radial-gradient(ellipse at 35% 45%,#eef0f3 0 20%,transparent 45%),radial-gradient(ellipse at 75% 65%,#d9dde3 0 18%,transparent 40%),linear-gradient(135deg,#6f7f62,#8a8467)", icon: '<path d="M11 26h16a5 5 0 0 0 0-10 7 7 0 0 0-13.5 2A4.5 4.5 0 0 0 11 26z" fill="none" stroke="#fff" stroke-width="2.4"/>' },
+    waves: { name: "คลื่น", kind: "field", thumb: "linear-gradient(135deg,#3463c9,#7a3fc0 50%,#c93fa8)", icon: '<path d="M7 15c3-3 5-3 8 0s5 3 8 0 5-3 8 0 M7 23c3-3 5-3 8 0s5 3 8 0 5-3 8 0" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round"/>' },
+    accum: { name: "ปริมาณฝนสะสม", kind: "field", thumb: "radial-gradient(circle at 55% 50%,#b3321e 0 10%,#e5862d 22%,#f4d14a 36%,#5cc46a 52%,#3d8fd6 70%)", icon: '<path d="M11 22h16a5 5 0 0 0 0-10 7 7 0 0 0-13.5 2A4.5 4.5 0 0 0 11 22z" fill="#fff"/><path d="M14 25l-1 3 M19 25l-1 3 M24 25l-1 3" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>' },
+  };
+  let field = null;                   // {bounds, zoom, times, start, rain[], cloud[], temp[], wind[], dir[], wave[]}
+  let overlay = null, tIndex = 0, playTimer = null, fieldSeq = 0, satLayer = null;
   let radar = { frames: [], layers: [], idx: 0, loaded: 0 };
-  if (!["radar", "rain", "temp", "wind"].includes(layer)) layer = "radar";
+  let particlesOn = store.get("wx-particles", true);
+  if (!LAYERS[layer]) layer = "radar";
 
   function initMap() {
     if (!window.L) { $("map").innerHTML = '<p style="color:#fff;padding:16px">โหลดแผนที่ไม่ได้</p>'; return; }
-    map = L.map("map", { zoomControl: false, attributionControl: false, worldCopyJump: true, minZoom: 4, maxZoom: 12 }).setView([place.lat, place.lon], 7);
+    map = L.map("map", { zoomControl: false, attributionControl: false, worldCopyJump: true, minZoom: 3, maxZoom: 12 }).setView([place.lat, place.lon], 7);
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, className: "basemap" }).addTo(map);
-    L.control.attribution({ position: "topright", prefix: false }).addAttribution('© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · Open-Meteo · RainViewer').addTo(map);
+    L.control.attribution({ position: "topright", prefix: false }).addAttribution('© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · Open-Meteo · RainViewer · NASA GIBS').addTo(map);
     marker = L.circleMarker([place.lat, place.lon], { radius: 9, color: "#ffffff", weight: 3, opacity: .7, fillColor: "#1f2328", fillOpacity: 1, pane: "markerPane" }).addTo(map);
     map.on("click", async (e) => {
       const { lat, lng } = e.latlng.wrap();
@@ -704,9 +752,14 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
       setPlace({ ...n, lat, lon: lng }, { keepView: true });
     });
     let mt = null;
-    map.on("moveend", () => { clearTimeout(mt); mt = setTimeout(() => { if (layer !== "radar") ensureField(false); }, 400); });
+    map.on("movestart", () => particles.pause());
+    map.on("moveend", () => {
+      clearTimeout(mt);
+      mt = setTimeout(() => { if (LAYERS[layer].kind === "field") ensureField(false); particles.reset(); }, 400);
+    });
+    initParticles();
     applyLayer();
-    setInterval(() => { if (layer === "radar") loadRadar(); else ensureField(true); }, 15 * 60 * 1000);
+    setInterval(() => { if (layer === "radar") loadRadar(); else if (LAYERS[layer].kind === "field") ensureField(true); }, 15 * 60 * 1000);
   }
 
   // ----- live rain radar (observed, last ~2 hours) -----
@@ -729,16 +782,29 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
     radar.layers.forEach((l, k) => l.setOpacity(k === i ? 0.75 : 0));
     const f = radar.frames[i]; if (!f) return;
     const t = new Date(f.time * 1000);
-    const future = t > new Date();
-    $("tlabel").textContent = (future ? "คาดการณ์ " : "เรดาร์ ") + String(t.getHours()).padStart(2, "0") + ":" + String(t.getMinutes()).padStart(2, "0") + " น.";
+    $("tlabel").textContent = (t > new Date() ? "คาดการณ์ " : "เรดาร์ ") + String(t.getHours()).padStart(2, "0") + ":" + String(t.getMinutes()).padStart(2, "0") + " น.";
+  }
+
+  // ----- daily satellite picture (NASA GIBS, true colour) -----
+  function satDate(back) { const d = new Date(Date.now() - back * 864e5); return d.toISOString().slice(0, 10); }
+  function showSat() {
+    const back = 1 + (Number($("tslider").max) - tIndex);
+    const date = satDate(back);
+    const url = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_NOAA20_CorrectedReflectance_TrueColor/default/" + date + "/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg";
+    if (satLayer) satLayer.setUrl(url); else satLayer = L.tileLayer(url, { maxNativeZoom: 9, maxZoom: 19, zIndex: 300, opacity: .95 });
+    if (!map.hasLayer(satLayer)) satLayer.addTo(map);
+    const d = new Date(date + "T00:00:00");
+    $("tlabel").textContent = "ภาพถ่าย " + d.getDate() + " " + MON[d.getMonth()];
   }
 
   // ----- forecast field from a grid of points -----
   async function ensureField(force) {
     const vb = map.getBounds();
-    if (!force && field && field.bounds.contains(vb) && Math.abs(field.zoom - map.getZoom()) < 2) return;
+    const needWave = layer === "waves";
+    if (!force && field && field.bounds.contains(vb) && Math.abs(field.zoom - map.getZoom()) < 2 && (!needWave || field.wave)) { setupSlider(); drawField(); return; }
     const pad = vb.pad(0.35);
     const s = Math.max(-80, pad.getSouth()), n = Math.min(80, pad.getNorth()), w = pad.getWest(), e = pad.getEast();
+    const reuse = !force && field && field.bounds.contains(vb) && Math.abs(field.zoom - map.getZoom()) < 2;
     const lats = [], lons = [];
     for (let r = 0; r < GRID; r++) for (let c = 0; c < GRID; c++) {
       lats.push((n - (r / (GRID - 1)) * (n - s)).toFixed(3));
@@ -747,47 +813,71 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
     const seq = ++fieldSeq;
     $("maploading").hidden = false;
     try {
-      const p = new URLSearchParams({ latitude: lats.join(","), longitude: lons.join(","), hourly: "precipitation,cloud_cover,temperature_2m,wind_speed_10m", forecast_days: "3", timezone: "GMT", wind_speed_unit: "kmh" });
-      const r = await fetch("https://api.open-meteo.com/v1/forecast?" + p);
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      let j = await r.json();
-      if (!Array.isArray(j)) j = [j];
+      let next = reuse ? field : null;
+      if (!next) {
+        const p = new URLSearchParams({ latitude: lats.join(","), longitude: lons.join(","), hourly: "precipitation,cloud_cover,temperature_2m,wind_speed_10m,wind_direction_10m", forecast_days: "3", past_days: "1", timezone: "GMT", wind_speed_unit: "kmh" });
+        const r = await fetch("https://api.open-meteo.com/v1/forecast?" + p);
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        let j = await r.json();
+        if (!Array.isArray(j)) j = [j];
+        const pick = (k) => j.map((loc) => loc.hourly[k]);
+        next = { bounds: L.latLngBounds([s, w], [n, e]), zoom: map.getZoom(), times: j[0].hourly.time, lats, lons, rain: pick("precipitation"), cloud: pick("cloud_cover"), temp: pick("temperature_2m"), wind: pick("wind_speed_10m"), dir: pick("wind_direction_10m") };
+        next.start = Math.max(0, next.times.indexOf(new Date().toISOString().slice(0, 13) + ":00"));
+        next.first = Math.max(0, next.start - 24);
+      }
+      if (needWave && !next.wave) {
+        try {
+          const p = new URLSearchParams({ latitude: next.lats.join(","), longitude: next.lons.join(","), hourly: "wave_height", forecast_days: "3", past_days: "1", timezone: "GMT", cell_selection: "sea" });
+          const r = await fetch("https://marine-api.open-meteo.com/v1/marine?" + p);
+          let j = await r.json();
+          if (!Array.isArray(j)) j = [j];
+          next.wave = j.map((loc) => (loc && loc.hourly ? loc.hourly.wave_height : null));
+        } catch (_) { next.wave = []; }
+      }
       if (seq !== fieldSeq) return;
-      const times = j[0].hourly.time;
-      const pick = (k) => j.map((loc) => loc.hourly[k]);
-      field = { bounds: L.latLngBounds([s, w], [n, e]), zoom: map.getZoom(), times, rain: pick("precipitation"), cloud: pick("cloud_cover"), temp: pick("temperature_2m"), wind: pick("wind_speed_10m") };
-      field.start = Math.max(0, times.indexOf(new Date().toISOString().slice(0, 13) + ":00"));
-      if (layer !== "radar") { setupSlider(); drawField(); }
+      field = next;
+      if (LAYERS[layer].kind === "field") { setupSlider(); drawField(); }
+      particles.reset();
     } catch (e) {
-      if (layer !== "radar") $("tlabel").textContent = "โหลดแผนที่พยากรณ์ไม่ได้";
+      if (LAYERS[layer].kind === "field") $("tlabel").textContent = "โหลดแผนที่พยากรณ์ไม่ได้";
     } finally { if (seq === fieldSeq) $("maploading").hidden = true; }
   }
 
+  // bilinear sample of a grid variable at fractional grid coords
+  function gridAt(arr, gx, gy, ti) {
+    const n = GRID;
+    if (gx < 0 || gy < 0 || gx > n - 1 || gy > n - 1) return null;
+    const c0 = Math.floor(gx), r0 = Math.floor(gy), c1 = Math.min(n - 1, c0 + 1), r1 = Math.min(n - 1, r0 + 1), fx = gx - c0, fy = gy - r0;
+    const g = (r, c) => { const a = arr[r * n + c]; return a ? a[ti] : null; };
+    const v00 = g(r0, c0), v01 = g(r0, c1), v10 = g(r1, c0), v11 = g(r1, c1);
+    if (v00 == null || v01 == null || v10 == null || v11 == null) return null;
+    return (v00 * (1 - fx) + v01 * fx) * (1 - fy) + (v10 * (1 - fx) + v11 * fx) * fy;
+  }
+
   function drawField() {
-    if (!field || layer === "radar") return;
-    const ti = field.start + tIndex;
-    const n = GRID, R = 160;
+    if (!field || LAYERS[layer].kind !== "field") return;
+    const ti = field.first + tIndex;
+    const R = 160;
     const cv = document.createElement("canvas"); cv.width = R; cv.height = R;
     const ctx = cv.getContext("2d"), img = ctx.createImageData(R, R);
-    const val = (arr, r, c) => { const a = arr[r * n + c]; return a ? a[ti] : null; };
-    const sample = (arr, x, y) => {
-      const gx = (x / (R - 1)) * (n - 1), gy = (y / (R - 1)) * (n - 1);
-      const c0 = Math.floor(gx), r0 = Math.floor(gy), c1 = Math.min(n - 1, c0 + 1), r1 = Math.min(n - 1, r0 + 1), fx = gx - c0, fy = gy - r0;
-      const v00 = val(arr, r0, c0), v01 = val(arr, r0, c1), v10 = val(arr, r1, c0), v11 = val(arr, r1, c1);
-      if (v00 == null || v01 == null || v10 == null || v11 == null) return null;
-      return (v00 * (1 - fx) + v01 * fx) * (1 - fy) + (v10 * (1 - fx) + v11 * fx) * fy;
-    };
+    let accum = null;
+    if (layer === "accum") {     // total rain from now up to the chosen hour
+      accum = field.rain.map((a) => { let s = 0; if (!a) return null; for (let k = Math.min(field.start, ti); k <= Math.max(field.start, ti); k++) s += a[k] || 0; return [s]; });
+    }
     for (let y = 0; y < R; y++) for (let x = 0; x < R; x++) {
+      const gx = (x / (R - 1)) * (GRID - 1), gy = (y / (R - 1)) * (GRID - 1);
       let col = [0, 0, 0, 0];
       if (layer === "rain") {
-        const cl = sample(field.cloud, x, y), rn = sample(field.rain, x, y);
-        const cc = cl == null ? [0, 0, 0, 0] : lerpColor(SCALES.cloud.stops, cl);
+        const cl = gridAt(field.cloud, gx, gy, ti), rn = gridAt(field.rain, gx, gy, ti);
+        const cc = cl == null ? [0, 0, 0, 0] : lerpColor(SCALES.cloudsoft.stops, cl);
         const rc = rn == null ? [0, 0, 0, 0] : lerpColor(SCALES.rain.stops, rn);
         const a = rc[3] / 255;
         col = [rc[0] * a + cc[0] * (1 - a), rc[1] * a + cc[1] * (1 - a), rc[2] * a + cc[2] * (1 - a), Math.max(rc[3], cc[3])];
+      } else if (layer === "accum") {
+        const v = gridAt(accum, gx, gy, 0); if (v != null) col = lerpColor(SCALES.accum.stops, v);
       } else {
-        const v = sample(layer === "temp" ? field.temp : field.wind, x, y);
-        if (v != null) col = lerpColor(SCALES[layer].stops, v);
+        const src = { temp: field.temp, wind: field.wind, cloud: field.cloud, waves: field.wave || [] }[layer];
+        const v = gridAt(src, gx, gy, ti); if (v != null) col = lerpColor(SCALES[layer].stops, v);
       }
       const o = (y * R + x) * 4;
       img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = col[3];
@@ -797,57 +887,153 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
     if (overlay) { overlay.setUrl(url).setBounds(field.bounds); if (!map.hasLayer(overlay)) overlay.addTo(map); }
     else overlay = L.imageOverlay(url, field.bounds, { opacity: 0.85, interactive: false }).addTo(map);
     const t = new Date(field.times[ti] + "Z");
-    $("tlabel").textContent = (t.toDateString() === new Date().toDateString() ? "วันนี้" : DAY_SHORT[t.getDay()] + " " + t.getDate()) + " " + String(t.getHours()).padStart(2, "0") + ":00 น.";
+    const when = (t.toDateString() === new Date().toDateString() ? "วันนี้" : DAY_SHORT[t.getDay()] + " " + t.getDate()) + " " + String(t.getHours()).padStart(2, "0") + ":00 น.";
+    const rel = ti - field.start;
+    const tag = rel < 0 ? " (ย้อนหลัง)" : rel === 0 ? " (ตอนนี้)" : "";
+    $("tlabel").textContent = (layer === "accum" ? (rel < 0 ? "สะสมตั้งแต่ " : "สะสมถึง ") : "") + when + tag;
   }
 
   function drawScale() {
     const sc = SCALES[layer];
+    if (!sc) { $("scale").innerHTML = ""; return; }
     const stops = sc.stops.filter((s) => s[1][3] > 0);
     const g = stops.slice().reverse().map((s, i) => "rgb(" + s[1].slice(0, 3).join(",") + ") " + Math.round((i / (stops.length - 1)) * 100) + "%").join(",");
     $("scale").innerHTML = "<span>" + sc.unit + '</span><span class="bar" style="background:linear-gradient(' + g + ')"></span><span class="ends"><span>' + sc.hi + "</span><span>" + sc.lo + "</span></span>";
   }
 
+  // ----- wind particles (Windy-style streaks) -----
+  const particles = { pause() {}, reset() {} };
+  function initParticles() {
+    const cv = document.createElement("canvas");
+    cv.className = "particles";
+    $("map").appendChild(cv);
+    const ctx = cv.getContext("2d");
+    let pts = [], raf = 0, running = false, W = 0, H = 0, dpr = 1;
+    const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    function size() {
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      W = $("map").clientWidth; H = $("map").clientHeight;
+      cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + "px"; cv.style.height = H + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    function wanted() { return particlesOn && field && LAYERS[layer].kind === "field" && !reduce; }
+    function seed(p) { p.x = Math.random() * W; p.y = Math.random() * H; p.age = Math.floor(Math.random() * 80); return p; }
+    function toGrid(x, y) {
+      const ll = map.containerPointToLatLng([x, y]);
+      const b = field.bounds;
+      let lon = ll.lng; while (lon < b.getWest()) lon += 360; while (lon > b.getEast() + 0.0001 && lon - 360 >= b.getWest()) lon -= 360;
+      return [((lon - b.getWest()) / (b.getEast() - b.getWest())) * (GRID - 1), ((b.getNorth() - ll.lat) / (b.getNorth() - b.getSouth())) * (GRID - 1)];
+    }
+    // per-frame velocity lookup on a coarse screen grid, rebuilt when the view or hour changes
+    let vgrid = null, vkey = "";
+    function buildV() {
+      const step = 16, cols = Math.ceil(W / step) + 1, rows = Math.ceil(H / step) + 1, ti = field.first + tIndex;
+      const u = new Float32Array(cols * rows), v = new Float32Array(cols * rows);
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        const [gx, gy] = toGrid(c * step, r * step);
+        const sp = gridAt(field.wind, gx, gy, ti), dir = gridAt(field.dir, gx, gy, ti);
+        if (sp == null || dir == null) continue;
+        const rad = (dir * Math.PI) / 180;
+        u[r * cols + c] = -sp * Math.sin(rad); v[r * cols + c] = -sp * Math.cos(rad);
+      }
+      vgrid = { step, cols, rows, u, v };
+    }
+    function vel(x, y) {
+      const g = vgrid, c = Math.round(x / g.step), r = Math.round(y / g.step);
+      if (c < 0 || r < 0 || c >= g.cols || r >= g.rows) return [0, 0];
+      return [g.u[r * g.cols + c], g.v[r * g.cols + c]];
+    }
+    function frameFn() {
+      if (!running) return;
+      const key = map.getCenter().toString() + map.getZoom() + tIndex + (field && field.times[0]) + W + "x" + H;
+      if (key !== vkey) { buildV(); vkey = key; }
+      ctx.globalCompositeOperation = "destination-in";
+      ctx.fillStyle = "rgba(0,0,0,.9)"; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.strokeStyle = "rgba(255,255,255,.85)"; ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      const k = 0.06 * Math.pow(1.25, map.getZoom() - 6) * 4;
+      for (const p of pts) {
+        const [u, v] = vel(p.x, p.y);
+        const nx = p.x + u * k * 0.25, ny = p.y - v * k * 0.25;
+        if (++p.age > 90 || nx < 0 || ny < 0 || nx > W || ny > H || (u === 0 && v === 0)) { seed(p); p.age = 0; continue; }
+        ctx.moveTo(p.x, p.y); ctx.lineTo(nx, ny);
+        p.x = nx; p.y = ny;
+      }
+      ctx.stroke();
+      raf = requestAnimationFrame(frameFn);
+    }
+    function start() {
+      if (!wanted()) { stop(); return; }
+      size();
+      const count = Math.round(Math.min(1800, (W * H) / 140));
+      pts = Array.from({ length: count }, () => seed({}));
+      vkey = "";
+      if (!running) { running = true; raf = requestAnimationFrame(frameFn); }
+    }
+    function stop() { running = false; cancelAnimationFrame(raf); ctx.clearRect(0, 0, W, H); }
+    particles.pause = stop;
+    particles.reset = () => { stop(); start(); };
+    window.addEventListener("resize", () => particles.reset());
+    document.addEventListener("visibilitychange", () => { if (document.hidden) stop(); else start(); });
+  }
+
   // one slider drives whichever layer is showing
   function setupSlider() {
-    const sl = $("tslider");
-    if (layer === "radar") {
-      const max = Math.max(0, radar.frames.length - 1);
-      sl.max = String(max);
+    const sl = $("tslider"), kind = LAYERS[layer].kind;
+    $("tnow").hidden = true;
+    if (kind === "radar") {
+      sl.max = String(Math.max(0, radar.frames.length - 1));
       const pastCount = radar.frames.filter((f) => f.time * 1000 <= Date.now()).length;
       tIndex = Math.max(0, pastCount - 1);
       sl.value = String(tIndex);
       showRadar(tIndex);
+    } else if (kind === "sat") {
+      sl.max = "6"; tIndex = 6; sl.value = "6";
     } else if (field) {
-      const max = Math.min(47, field.times.length - 1 - field.start);
+      const now = field.start - field.first;
+      const max = Math.min(now + 48, field.times.length - 1 - field.first);
       sl.max = String(max);
-      if (tIndex > max) tIndex = 0;
+      if (layer === "accum" && tIndex < 0) tIndex = Math.min(now + 24, max);
+      if (tIndex < 0 || tIndex > max) tIndex = now;
       sl.value = String(tIndex);
+      $("tnow").style.left = (now / max * 100) + "%";
+      $("tnow").hidden = false;
     }
   }
-  function frame() { if (layer === "radar") showRadar(tIndex); else drawField(); }
+  function frame() {
+    const kind = LAYERS[layer].kind;
+    if (kind === "radar") showRadar(tIndex); else if (kind === "sat") showSat(); else { drawField(); }
+  }
 
   function applyLayer() {
     stopPlay();
-    document.querySelectorAll(".layers button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.layer === layer)));
+    const L0 = LAYERS[layer];
+    $("layer-name").textContent = L0.name;
+    $("layer-ic").innerHTML = '<svg width="22" height="22" viewBox="0 0 38 34" aria-hidden="true">' + L0.icon + "</svg>";
+    document.querySelectorAll(".lcard").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.layer === layer)));
     drawScale();
-    if (layer === "radar") {
-      if (overlay && map.hasLayer(overlay)) map.removeLayer(overlay);
+    if (L0.kind !== "radar") radar.layers.forEach((l) => { if (map.hasLayer(l)) map.removeLayer(l); });
+    if (L0.kind !== "sat" && satLayer && map.hasLayer(satLayer)) map.removeLayer(satLayer);
+    if (L0.kind !== "field" && overlay && map.hasLayer(overlay)) map.removeLayer(overlay);
+    if (L0.kind === "radar") {
       if (!radar.frames.length || Date.now() - radar.loaded > 10 * 60 * 1000) { $("tlabel").textContent = "กำลังโหลดเรดาร์…"; loadRadar(); }
       else { radar.layers.forEach((l) => { if (!map.hasLayer(l)) l.addTo(map); }); setupSlider(); }
+    } else if (L0.kind === "sat") {
+      setupSlider(); showSat();
     } else {
-      radar.layers.forEach((l) => { if (map.hasLayer(l)) map.removeLayer(l); });
-      tIndex = 0;
-      if (field && field.bounds.contains(map.getBounds())) { setupSlider(); drawField(); } else ensureField(true);
+      tIndex = -1;
+      ensureField(false);
     }
+    particles.reset();
   }
 
   function setMapTimeByIndex(hIdx) {
-    if (!field || !fc || layer === "radar") return;
-    const localKey = fc.hourly.time[hIdx];
+    if (!field || !fc || LAYERS[layer].kind !== "field") return;
     const off = (fc.utc_offset_seconds || 0) * 1000;
-    const utc = new Date(new Date(localKey + "Z").getTime() - off).toISOString().slice(0, 13) + ":00";
-    const k = field.times.indexOf(utc) - field.start;
-    if (k >= 0 && k <= Number($("tslider").max)) { tIndex = k; $("tslider").value = String(k); drawField(); }
+    const utc = new Date(new Date(fc.hourly.time[hIdx] + "Z").getTime() - off).toISOString().slice(0, 13) + ":00";
+    const k = field.times.indexOf(utc) - field.first;
+    if (k >= 0 && k <= Number($("tslider").max)) { tIndex = k; $("tslider").value = String(k); frame(); }
   }
   $("tslider").addEventListener("input", (e) => { tIndex = Number(e.target.value); frame(); });
   function stopPlay() { if (playTimer) { clearInterval(playTimer); playTimer = null; } $("play").textContent = "▶"; }
@@ -858,15 +1044,30 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
       tIndex = (tIndex + 1) % (Number($("tslider").max) + 1);
       $("tslider").value = String(tIndex);
       frame();
-    }, layer === "radar" ? 600 : 450);
+    }, LAYERS[layer].kind === "field" ? 450 : 700);
   };
-  document.querySelectorAll(".layers button").forEach((b) => {
-    b.onclick = () => { layer = b.dataset.layer; store.set("wx-layer", layer); if (map) applyLayer(); };
-  });
+
+  // layer menu (drawer)
+  function buildMenu() {
+    $("lgrid").innerHTML = Object.entries(LAYERS).map(([k, v]) =>
+      '<button type="button" class="lcard" data-layer="' + k + '" aria-pressed="' + (k === layer) + '"><span class="th" style="background:' + v.thumb + '"><svg width="38" height="34" viewBox="0 0 38 34" aria-hidden="true">' + v.icon + "</svg></span><span>" + v.name + "</span></button>").join("");
+    $("lgrid").querySelectorAll(".lcard").forEach((b) => {
+      b.onclick = () => { layer = b.dataset.layer; store.set("wx-layer", layer); closeMenu(); if (map) applyLayer(); };
+    });
+    $("tg-particles").checked = particlesOn;
+  }
+  function openMenu() { $("drawer").hidden = false; $("scrim").hidden = false; requestAnimationFrame(() => $("drawer").classList.add("open")); $("drawer").querySelector(".lcard[aria-pressed='true']")?.focus(); }
+  function closeMenu() { $("drawer").classList.remove("open"); $("scrim").hidden = true; setTimeout(() => { $("drawer").hidden = true; }, 220); }
+  $("btn-layers").onclick = openMenu;
+  $("drawer-close").onclick = closeMenu;
+  $("scrim").onclick = closeMenu;
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("drawer").hidden) closeMenu(); });
+  $("tg-particles").onchange = (e) => { particlesOn = e.target.checked; store.set("wx-particles", particlesOn); particles.reset(); };
+  buildMenu();
 
 
   let lastLoad = Date.now();
-  document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - lastLoad > 15 * 60 * 1000) { lastLoad = Date.now(); loadForecast(); if (map) { if (layer === "radar") loadRadar(); else ensureField(true); } } });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - lastLoad > 15 * 60 * 1000) { lastLoad = Date.now(); loadForecast(); if (map) { if (layer === "radar") loadRadar(); else if (LAYERS[layer].kind === "field") ensureField(true); } } });
   let rt = null;
   window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (fc) renderTable(); }, 200); });
 

@@ -1399,7 +1399,67 @@ body[data-view="map"] .tabbar { display: none; }
     }
     if (need.length) { const all = Array.from(flowCache.entries()).slice(-3000); store.set("wx-flow", { at: flowSavedAt, data: all }); }
   }
+  // prepared river tiles (1x1 degree, rebuilt daily by a GitHub Action): only the tiles on screen are downloaded
+  let riverIndex = null, riverIndexP = null;
+  const riverTiles = new Map();          // "lat_lon" -> Promise<ways[]>
+  function getRiverIndex() {
+    if (!riverIndexP) riverIndexP = fetch("rivers/index.json").then((r) => (r.ok ? r.json() : null)).catch(() => null).then((j) => { riverIndex = j && j.tiles && j.tiles.length ? j : null; return riverIndex; });
+    return riverIndexP;
+  }
+  function getRiverTile(key) {
+    if (!riverTiles.has(key)) riverTiles.set(key, fetch("rivers/" + key + ".json").then((r) => (r.ok ? r.json() : { ways: [] })).then((j) => j.ways || []).catch(() => { riverTiles.delete(key); return []; }));
+    return riverTiles.get(key);
+  }
   async function loadRivers() {
+    if (!map || !riversOn || (view !== "map" && view !== "today")) return;
+    const vb = map.getBounds();
+    if (riverAt && riverAt.b.contains(vb) && map.getZoom() === riverAt.z) return;
+    const idx = await getRiverIndex();
+    if (!idx) return loadRiversLive();
+    const z = map.getZoom();
+    if (z < 7) { if (riverLayer) riverLayer.clearLayers(); riverAt = null; $("river-note").textContent = "ซูมแผนที่เข้าใกล้อีกหน่อย เพื่อดูเส้นแม่น้ำบริเวณนั้น"; return; }
+    const pad = vb.pad(0.25), S = pad.getSouth(), N = pad.getNorth(), W = pad.getWest(), E = pad.getEast();
+    const have = new Set(idx.tiles), keys = [];
+    for (let la = Math.floor(S); la <= Math.floor(N); la++) for (let lo = Math.floor(W); lo <= Math.floor(E); lo++) if (have.has(la + "_" + lo)) keys.push(la + "_" + lo);
+    const seq = ++riverSeq;
+    const slow = keys.some((k) => !riverTiles.has(k));
+    if (slow) { $("maploading").hidden = false; $("maploading").textContent = "กำลังโหลดเส้นแม่น้ำ…"; }
+    const lists = await Promise.all(keys.map(getRiverTile));
+    if (slow && seq === riverSeq) { $("maploading").hidden = true; $("maploading").textContent = "กำลังโหลดแผนที่…"; }
+    if (seq !== riverSeq || !riversOn) return;
+    const data = { at: idx.at, ways: [] }, seen = new Set();
+    lists.forEach((ws) => ws.forEach((w) => { if (!seen.has(w.id)) { seen.add(w.id); data.ways.push(w); } }));
+    riverAt = { b: pad, z };
+    if (!riverLayer) riverLayer = L.layerGroup().addTo(map);
+    riverLayer.clearLayers();
+    const top = [];
+    data.ways.forEach((w) => {
+      const b = w.b;
+      if (b[2] < S || b[0] > N || b[3] < W || b[1] > E) return;
+      const name = w.n || "แม่น้ำ";
+      w.s.forEach((st, k) => {
+        const i0 = st[0], i1 = k + 1 < w.s.length ? w.s[k + 1][0] : w.c.length - 1;
+        const pts = w.c.slice(i0, i1 + 1);
+        if (pts.length < 2) return;
+        const has = st.length > 1, med = st[1], peak = st[2], ratio = has ? peak / med : 0;
+        const lv = !has ? -1 : ratio >= 8 ? 3 : ratio >= 4 ? 2 : ratio >= 2 ? 1 : 0;
+        if (z < 9 && lv < 0) return;           // hide small streams without flow data until zoomed in
+        const col = lv > 0 ? LV_COL[lv] : "#5AB0FF", wt = lv < 0 ? 1.4 : lv === 0 ? 2.4 : 3 + lv;
+        if (lv > 0) L.polyline(pts, { renderer: riverRender, color: "#0B1220", weight: wt + 3, opacity: 0.5, interactive: false }).addTo(riverLayer);
+        const line = L.polyline(pts, { renderer: riverRender, color: col, weight: wt, opacity: lv < 0 ? 0.4 : 0.95, lineCap: "round", lineJoin: "round", bubblingMouseEvents: false, interactive: has }).addTo(riverLayer);
+        if (has) {
+          const mid = pts[Math.floor(pts.length / 2)], pd = parseLocal(st[4]);
+          line.bindPopup('<div class="rvpop"><span>' + name.replace(/[<>&"]/g, "") + '</span><b style="color:' + col + '">' + (lv > 0 ? "น้ำมากกว่าปกติ " + ratio.toFixed(1) + " เท่า" : "ระดับน้ำปกติ") + "</b>" +
+            "<span>สูงสุดราว " + Math.round(peak) + " ลบ.ม./วินาที ช่วง " + pd.d + " " + MON[pd.m - 1] + "</span><span>ตอนนี้ " + Math.round(st[3]) + " · ปกติ " + Math.round(med) + " ลบ.ม./วินาที</span>" +
+            '<button type="button" data-rv="' + mid[0].toFixed(4) + "," + mid[1].toFixed(4) + '">ดูความเสี่ยงน้ำท่วมจุดนี้</button></div>', { maxWidth: 240, autoPanPaddingTopLeft: [16, 90], autoPanPaddingBottomRight: [16, 100] });
+          if (lv > 0) top.push(line);
+        }
+      });
+    });
+    top.forEach((l) => l.bringToFront());
+    $("river-note").innerHTML = 'เส้นแม่น้ำ สีตามน้ำสูงสุดใน 14 วันเทียบกับปกติ: <b style="color:#5AB0FF">━</b> ปกติ <b style="color:#FFC24A">━</b> 2 เท่า <b style="color:#FF8A4C">━</b> 4 เท่า <b style="color:#FF5A5F">━</b> 8 เท่าขึ้นไป · อัปเดต ' + String(data.at || "").replace("T", " ").slice(0, 16) + (z < 9 ? " · ซูมเข้าอีกเพื่อดูลำน้ำสายเล็ก" : "");
+  }
+  async function loadRiversLive() {
     if (!map || !riversOn || (view !== "map" && view !== "today")) return;
     await fcReady;
     if (map.getZoom() < 6) { $("river-note").textContent = "ซูมแผนที่เข้าใกล้อีกหน่อยเพื่อดูเส้นแม่น้ำ"; if (riverLayer) riverLayer.clearLayers(); riverAt = null; return; }

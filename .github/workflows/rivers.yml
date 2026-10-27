@@ -1,0 +1,24 @@
+name: Update river flood risk
+on:
+  schedule:
+    - cron: "30 22 * * *"   # 05:30 Thai time, after GloFAS updates
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python tools/build_rivers.py
+      - name: Commit data
+        run: |
+          git config user.name "rivers-bot"
+          git config user.email "rivers-bot@users.noreply.github.com"
+          git add -A rivers rivers-geom.json
+          git diff --cached --quiet || git commit -m "Update river flood risk data"
+          git pull --rebase origin main && git push

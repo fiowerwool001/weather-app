@@ -1423,6 +1423,7 @@ body[data-view="map"] .tabbar { display: none; }
     const pad = vb.pad(0.25), S = pad.getSouth(), N = pad.getNorth(), W = pad.getWest(), E = pad.getEast();
     const have = new Set(idx.tiles), keys = [];
     for (let la = Math.floor(S); la <= Math.floor(N); la++) for (let lo = Math.floor(W); lo <= Math.floor(E); lo++) if (have.has(la + "_" + lo)) keys.push(la + "_" + lo);
+    if (!keys.length && !idx.boxes) return loadRiversLive();
     const seq = ++riverSeq;
     const slow = keys.some((k) => !riverTiles.has(k));
     if (slow) { $("maploading").hidden = false; $("maploading").textContent = "กำลังโหลดเส้นแม่น้ำ…"; }

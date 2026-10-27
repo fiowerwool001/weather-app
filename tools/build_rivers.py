@@ -168,7 +168,7 @@ def main():
             cum.append(cum[-1] + km(c[i - 1], c[i]))
         L = cum[-1]
         n = max(1, round(L / SAMPLE_KM))
-        w["cum"], w["step"], w["keys"] = cum, L / n, []
+        w["cum"], w["step"], w["keys"] = cum, max(L / n, 1e-6), []  # some OSM ways have zero length
         for k in range(n):
             at = (k + 0.5) * L / n
             i = 1

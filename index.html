@@ -1285,7 +1285,7 @@ body[data-view="map"] .tabbar { display: none; }
   $("tg-particles").onchange = (e) => { particlesOn = e.target.checked; store.set("wx-particles", particlesOn); particles.reset(); };
 
   // ----- webcams (Windy Webcams API; needs a free key from api.windy.com/keys) -----
-  const WEBCAM_KEY = "";
+  const WEBCAM_KEY = "bDO920Ilk22agi27IgVhGnfGwe1zIqlY";
   let camsOn = store.get("wx-cams", true), camLayer = null, camSeq = 0, camAt = null;
   const CAM_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h12v10H3z M15 10l6-3v10l-6-3" fill="#0B1220"/></svg>';
   async function loadCams() {

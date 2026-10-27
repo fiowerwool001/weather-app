@@ -918,7 +918,7 @@ body[data-view="map"] .tabbar { display: none; }
 
   function initMap() {
     if (!window.L) { $("map").innerHTML = '<p style="color:#fff;padding:16px">โหลดแผนที่ไม่ได้</p>'; return; }
-    map = L.map("map", { zoomControl: false, attributionControl: false, worldCopyJump: true, minZoom: 3, maxZoom: 12 }).setView([place.lat, place.lon], 7);
+    map = L.map("map", { zoomControl: false, attributionControl: false, worldCopyJump: true, minZoom: 3, maxZoom: 18 }).setView([place.lat, place.lon], 7);
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, className: "basemap" }).addTo(map);
     L.control.attribution({ position: "topright", prefix: false }).addAttribution('© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · Open-Meteo · RainViewer · NASA GIBS').addTo(map);
     marker = L.circleMarker([place.lat, place.lon], { radius: 9, color: "#ffffff", weight: 3, opacity: .7, fillColor: "#1f2328", fillOpacity: 1, pane: "markerPane" }).addTo(map);

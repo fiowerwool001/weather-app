@@ -54,36 +54,47 @@ def simplify(pts, tol):
     return [p for p, k in zip(pts, keep) if k]
 
 
-def load_geometry():
-    if os.path.exists(GEOM_FILE):
-        g = json.load(open(GEOM_FILE))
-        if time.time() - g.get("at", 0) < 7 * 86400:
-            return g["ways"]
-    s, w, n, e = BBOX
-    q = f'[out:json][timeout:600][maxsize:1073741824];way["waterway"="river"]({s},{w},{n},{e});out tags geom;'
-    j = None
-    for host in ("https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"):
+def overpass_box(s, w, n, e):
+    q = f'[out:json][timeout:180];way["waterway"="river"]({s},{w},{n},{e});out tags geom;'
+    for host in ("https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter",
+                 "https://maps.mail.ru/osm/tools/overpass/api/interpreter"):
         try:
-            j = http(host, data=urllib.parse.urlencode({"data": q}).encode(), tries=2, timeout=900)
-            break
+            return http(host, data=urllib.parse.urlencode({"data": q}).encode(), tries=2, timeout=240)
         except Exception as e:  # noqa: BLE001
             print("overpass failed", host, e, file=sys.stderr)
-    if j is None:
-        raise RuntimeError("overpass unavailable")
-    ways = []
-    for el in j.get("elements", []):
-        geo = el.get("geometry") or []
-        pts = [(round(p["lat"], 4), round(p["lon"], 4)) for p in geo]
-        pts = simplify(pts, 0.0015)
-        if len(pts) < 2:
-            continue
-        tags = el.get("tags", {})
-        name = tags.get("name:th") or tags.get("name") or ""
-        ways.append({"n": name, "c": [[round(a, 3), round(b, 3)] for a, b in pts]})
-    json.dump({"at": time.time(), "ways": ways}, open(GEOM_FILE, "w"), ensure_ascii=False, separators=(",", ":"))
-    print("ways", len(ways))
-    return ways
+    return None
 
+
+def load_geometry():
+    """River lines, fetched as 2x2 degree boxes (the whole country in one query times out). Resumable; refreshed weekly."""
+    g = json.load(open(GEOM_FILE)) if os.path.exists(GEOM_FILE) else {}
+    if not g or time.time() - g.get("at", 0) > 7 * 86400:
+        g = {"at": time.time(), "done": [], "ways": {}}
+    S, W, N, E = BBOX
+    boxes = [(la, lo) for la in range(math.floor(S), math.ceil(N), 2) for lo in range(math.floor(W), math.ceil(E), 2)]
+    start = time.time()
+    for la, lo in boxes:
+        key = f"{la}_{lo}"
+        if key in g["done"]:
+            continue
+        if time.time() - start > 25 * 60:
+            print("geometry time budget used; the rest next run"); break
+        j = overpass_box(la, lo, la + 2, lo + 2)
+        if j is None:
+            continue
+        for el in j.get("elements", []):
+            pts = [(round(p["lat"], 4), round(p["lon"], 4)) for p in el.get("geometry") or []]
+            pts = simplify(pts, 0.0015)
+            if len(pts) < 2:
+                continue
+            tags = el.get("tags", {})
+            g["ways"][str(el["id"])] = {"n": tags.get("name:th") or tags.get("name") or "", "c": [[round(a, 3), round(b, 3)] for a, b in pts]}
+        g["done"].append(key)
+        print("box", key, "ways so far", len(g["ways"]))
+        json.dump(g, open(GEOM_FILE, "w"), ensure_ascii=False, separators=(",", ":"))
+        time.sleep(5)
+    print("boxes done", len(g["done"]), "of", len(boxes))
+    return list(g["ways"].values())
 
 FLOW_FILE = "rivers-flow.json"
 MED_BUDGET = 1200      # new cells per run for the 30-day normal (keeps each run under the hourly API limit)

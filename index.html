@@ -149,7 +149,11 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 0; bord
 .lcard .th { width: 100%; aspect-ratio: 5 / 4; border-radius: 12px; display: grid; place-items: center; }
 .lcard .th svg { filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
 .lcard[aria-pressed="true"] { background: rgba(90,176,255,.16); border-color: var(--blue); color: var(--blue); font-weight: 600; }
-.tgl { margin-top: 14px; min-height: 52px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); display: flex; align-items: center; gap: 12px; padding: 0 14px; cursor: pointer; font-size: 14px; }
+.dsec { margin-top: 16px; display: grid; gap: 8px; }
+.dsec .dnote { margin: 0 4px 4px; }
+.dlabel { font-family: var(--head); font-weight: 500; font-size: 15px; margin: 4px 2px 2px; }
+.tgl.sub { margin-left: 28px; min-height: 44px; }
+.tgl { min-height: 52px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); display: flex; align-items: center; gap: 12px; padding: 0 14px; cursor: pointer; font-size: 14px; }
 .tgl input { position: absolute; opacity: 0; }
 .tgl .sw { margin-left: auto; width: 46px; height: 28px; border-radius: 14px; background: rgba(255,255,255,.16); position: relative; flex: none; transition: background .2s; }
 .tgl .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .25s var(--ease); }
@@ -161,6 +165,11 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 0; bord
 .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: #16213A; color: var(--ink); }
 .leaflet-popup-content { margin: 10px; width: 240px !important; }
 .leaflet-container a.leaflet-popup-close-button { color: var(--ink-2); }
+.cam-pv { width: 74px; border-radius: 8px; overflow: hidden; border: 2px solid #4CD69A; box-shadow: 0 2px 8px rgba(0,0,0,.5); background: #0B1220; }
+.cam-pv img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.pin { display: flex; align-items: center; gap: 2px; padding: 0 8px 0 2px; height: 34px; border-radius: 17px; background: rgba(11,18,32,.82); border: 1px solid rgba(255,255,255,.16); color: #EEF3FA; font: 600 13px/1 Prompt, sans-serif; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.4); width: max-content; transform: translate(-50%, -50%); }
+.fav-pin { display: flex; align-items: center; gap: 4px; padding: 3px 9px 3px 5px; border-radius: 14px; background: #FF5A5F; color: #fff; font: 500 12px/1.2 "Noto Sans Thai", sans-serif; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.45); width: max-content; transform: translate(-50%, -50%); cursor: pointer; }
+.iso-l { font: 600 10.5px/1 Prompt, sans-serif; color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000; width: max-content; transform: translate(-50%, -50%); }
 .campop img { display: block; width: 100%; border-radius: 10px; aspect-ratio: 16 / 9; object-fit: cover; background: #0B1220; }
 .campop b { display: block; margin-top: 6px; font-family: var(--head); font-weight: 500; font-size: 13.5px; }
 .campop span { font-size: 11.5px; color: var(--muted); }
@@ -365,11 +374,18 @@ body[data-view="map"] .tabbar { display: none; }
   <div class="handle"></div>
   <div class="sheet-head"><h2>ชั้นข้อมูล</h2><button type="button" class="xbtn" id="sheet-close" aria-label="ปิด"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button></div>
   <div class="lgrid" id="lgrid"></div>
-  <label class="tgl"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h11a3 3 0 1 0-3-3 M3 12h15a3 3 0 1 1-3 3 M3 16h7" fill="none" stroke="#93A3BA" stroke-width="2" stroke-linecap="round"/></svg>เส้นลมเคลื่อนไหว<input type="checkbox" id="tg-particles"><span class="sw"></span></label>
-  <label class="tgl"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11v10H4z M15 10l5-3v10l-5-3" fill="none" stroke="#93A3BA" stroke-width="2" stroke-linejoin="round"/></svg>กล้องถ่ายทอดสด (Webcam)<input type="checkbox" id="tg-cams"><span class="sw"></span></label>
-  <label class="tgl"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15c3-2 5-2 7.5 0s4.5 2 7.5 0 3-2 3-2 M3 20c3-2 5-2 7.5 0s4.5 2 7.5 0 3-2 3-2 M8 11V6l4-3 4 3v5" fill="none" stroke="#93A3BA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>แม่น้ำเสี่ยงน้ำท่วม<input type="checkbox" id="tg-rivers"><span class="sw"></span></label>
-  <p class="dnote" id="river-note">จุดบนแม่น้ำ สีตามปริมาณน้ำสูงสุดใน 14 วันข้างหน้าเทียบกับปกติ: <b style="color:#5AB0FF">●</b> ปกติ <b style="color:#FFC24A">●</b> 2 เท่า <b style="color:#FF8A4C">●</b> 4 เท่า <b style="color:#FF5A5F">●</b> 8 เท่าขึ้นไป</p>
-  <p class="dnote" id="cam-note" hidden></p>
+  <div class="dsec">
+    <div class="dlabel">แสดงบนแผนที่</div>
+    <label class="tgl"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h11a3 3 0 1 0-3-3 M3 12h15a3 3 0 1 1-3 3 M3 16h7" fill="none" stroke="#93A3BA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>ภาพเคลื่อนไหวของลม<input type="checkbox" id="tg-particles"><span class="sw"></span></label>
+    <label class="tgl"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17c4-6 14-6 18 0 M6 12c3-4 9-4 12 0 M9 7.5c1.5-1.5 4.5-1.5 6 0" fill="none" stroke="#93A3BA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>เส้นไอโซไลน์ความกดอากาศ<input type="checkbox" id="tg-isobars"><span class="sw"></span></label>
+    <label class="tgl"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 15h9a3.5 3.5 0 0 0 0-7 5 5 0 0 0-9.6 1.4A3 3 0 0 0 7 15z M12 15v6" fill="none" stroke="#93A3BA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>พยากรณ์อากาศรายจุด<input type="checkbox" id="tg-pins"><span class="sw"></span></label>
+    <label class="tgl"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.2-9.4C1.6 7.6 4 4.2 7.4 4.2c2 0 3.6 1.1 4.6 2.7 1-1.6 2.6-2.7 4.6-2.7 3.4 0 5.8 3.4 4.6 6.9-1.7 4.8-9.2 9.4-9.2 9.4z" fill="none" stroke="#93A3BA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>สถานที่โปรดของฉัน<input type="checkbox" id="tg-favs"><span class="sw"></span></label>
+    <label class="tgl"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15c3-2 5-2 7.5 0s4.5 2 7.5 0 3-2 3-2 M3 20c3-2 5-2 7.5 0s4.5 2 7.5 0 3-2 3-2 M8 11V6l4-3 4 3v5" fill="none" stroke="#93A3BA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>แม่น้ำเสี่ยงน้ำท่วม<input type="checkbox" id="tg-rivers"><span class="sw"></span></label>
+    <p class="dnote" id="river-note">สีจุดแม่น้ำ = น้ำสูงสุดใน 14 วันเทียบกับปกติ: <b style="color:#5AB0FF">●</b> ปกติ <b style="color:#FFC24A">●</b> 2 เท่า <b style="color:#FF8A4C">●</b> 4 เท่า <b style="color:#FF5A5F">●</b> 8 เท่าขึ้นไป</p>
+    <label class="tgl"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11v10H4z M15 10l5-3v10l-5-3" fill="none" stroke="#93A3BA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>เว็บแคม<input type="checkbox" id="tg-cams"><span class="sw"></span></label>
+    <label class="tgl sub"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v14H3z M3 15l5-4 4 3 3-2 6 4" fill="none" stroke="#93A3BA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>ดูตัวอย่างภาพเว็บแคม<input type="checkbox" id="tg-campv"><span class="sw"></span></label>
+    <p class="dnote" id="cam-note" hidden></p>
+  </div>
   <p class="dnote">ชั้นพยากรณ์เลื่อนดูได้ตั้งแต่ 24 ชม. ที่แล้วถึงล่วงหน้า 48 ชม. · เรดาร์มีข้อมูลย้อนหลังราว 2 ชม. · ภาพดาวเทียมเป็นภาพรายวันจาก NASA</p>
 </aside>
 
@@ -856,7 +872,7 @@ body[data-view="map"] .tabbar { display: none; }
     const i = favs.findIndex((f) => f.lat === place.lat && f.lon === place.lon);
     if (i >= 0) favs.splice(i, 1); else favs.unshift({ name: place.name, detail: place.detail, lat: place.lat, lon: place.lon });
     favs = favs.slice(0, 12);
-    store.set("wx-favs", favs);
+    store.set("wx-favs", favs); drawFavs();
     renderHeader();
   };
   function syncStep() { $$(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.step) === step))); }
@@ -881,6 +897,7 @@ body[data-view="map"] .tabbar { display: none; }
     temp: { name: "อุณหภูมิ", kind: "field", thumb: "linear-gradient(135deg,#d5d34a,#f2a53a 40%,#e5602e 70%,#b62b3a)", icon: '<path d="M16 6a3 3 0 0 1 6 0v13a6 6 0 1 1-6 0z" fill="#fff"/><circle cx="19" cy="24" r="3" fill="#e5602e"/>' },
     cloud: { name: "เมฆ", kind: "field", thumb: "radial-gradient(ellipse at 35% 45%,#eef0f3 0 20%,transparent 45%),radial-gradient(ellipse at 75% 65%,#d9dde3 0 18%,transparent 40%),linear-gradient(135deg,#6f7f62,#8a8467)", icon: '<path d="M11 26h16a5 5 0 0 0 0-10 7 7 0 0 0-13.5 2A4.5 4.5 0 0 0 11 26z" fill="none" stroke="#fff" stroke-width="2.4"/>' },
     waves: { name: "คลื่น", kind: "field", thumb: "linear-gradient(135deg,#3463c9,#7a3fc0 50%,#c93fa8)", icon: '<path d="M7 15c3-3 5-3 8 0s5 3 8 0 5-3 8 0 M7 23c3-3 5-3 8 0s5 3 8 0 5-3 8 0" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round"/>' },
+    none: { name: "แผนที่ว่าง", kind: "none", thumb: "linear-gradient(135deg,#3a4558,#2a3344)", icon: '<path d="M12 10l14 14M26 10 12 24" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>' },
     accum: { name: "ปริมาณฝนสะสม", kind: "field", thumb: "radial-gradient(circle at 55% 50%,#b3321e 0 10%,#e5862d 22%,#f4d14a 36%,#5cc46a 52%,#3d8fd6 70%)", icon: '<path d="M11 22h16a5 5 0 0 0 0-10 7 7 0 0 0-13.5 2A4.5 4.5 0 0 0 11 22z" fill="#fff"/><path d="M14 25l-1 3 M19 25l-1 3 M24 25l-1 3" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>' },
   };
   let field = null;                   // {bounds, zoom, times, start, rain[], cloud[], temp[], wind[], dir[], wave[]}
@@ -905,7 +922,7 @@ body[data-view="map"] .tabbar { display: none; }
     map.on("movestart", () => particles.pause());
     map.on("moveend", () => {
       clearTimeout(mt);
-      mt = setTimeout(() => { if (LAYERS[layer].kind === "field" || layer === "radar") ensureField(false); particles.reset(); loadCams(); loadRivers(); }, 400);
+      mt = setTimeout(() => { if (LAYERS[layer].kind !== "sat" || extrasOn()) ensureField(false); particles.reset(); loadCams(); loadRivers(); drawFavs(); }, 400);
     });
     initParticles();
     applyLayer();
@@ -952,10 +969,10 @@ body[data-view="map"] .tabbar { display: none; }
   async function ensureField(force) {
     const vb = map.getBounds();
     const needWave = layer === "waves";
-    if (!force && field && field.bounds.contains(vb) && Math.abs(field.zoom - map.getZoom()) < 2 && (!needWave || field.wave)) { fieldReady(); return; }
+    if (!force && field && field.bounds.contains(vb) && Math.abs(field.zoom - map.getZoom()) < 2 && (!needWave || field.wave) && field.pres) { fieldReady(); return; }
     const pad = vb.pad(0.35);
     const s = Math.max(-80, pad.getSouth()), n = Math.min(80, pad.getNorth()), w = pad.getWest(), e = pad.getEast();
-    const reuse = !force && field && field.bounds.contains(vb) && Math.abs(field.zoom - map.getZoom()) < 2;
+    const reuse = !force && field && field.pres && field.bounds.contains(vb) && Math.abs(field.zoom - map.getZoom()) < 2;
     const lats = [], lons = [];
     for (let r = 0; r < GRID; r++) for (let c = 0; c < GRID; c++) {
       lats.push((n - (r / (GRID - 1)) * (n - s)).toFixed(3));
@@ -966,13 +983,13 @@ body[data-view="map"] .tabbar { display: none; }
     try {
       let next = reuse ? field : null;
       if (!next) {
-        const p = new URLSearchParams({ latitude: lats.join(","), longitude: lons.join(","), hourly: "precipitation,cloud_cover,temperature_2m,wind_speed_10m,wind_direction_10m", forecast_days: "3", past_days: "1", timezone: "GMT", wind_speed_unit: "kmh" });
+        const p = new URLSearchParams({ latitude: lats.join(","), longitude: lons.join(","), hourly: "precipitation,cloud_cover,temperature_2m,wind_speed_10m,wind_direction_10m,pressure_msl,weather_code,is_day", forecast_days: "3", past_days: "1", timezone: "GMT", wind_speed_unit: "kmh" });
         const r = await fetch("https://api.open-meteo.com/v1/forecast?" + p);
         if (!r.ok) throw new Error("HTTP " + r.status);
         let j = await r.json();
         if (!Array.isArray(j)) j = [j];
         const pick = (k) => j.map((loc) => loc.hourly[k]);
-        next = { bounds: L.latLngBounds([s, w], [n, e]), zoom: map.getZoom(), times: j[0].hourly.time, lats, lons, rain: pick("precipitation"), cloud: pick("cloud_cover"), temp: pick("temperature_2m"), wind: pick("wind_speed_10m"), dir: pick("wind_direction_10m") };
+        next = { bounds: L.latLngBounds([s, w], [n, e]), zoom: map.getZoom(), times: j[0].hourly.time, lats, lons, rain: pick("precipitation"), cloud: pick("cloud_cover"), temp: pick("temperature_2m"), wind: pick("wind_speed_10m"), dir: pick("wind_direction_10m"), pres: pick("pressure_msl"), code: pick("weather_code"), isday: pick("is_day") };
         next.start = Math.max(0, next.times.indexOf(new Date().toISOString().slice(0, 13) + ":00"));
         next.first = Math.max(0, next.start - 24);
       }
@@ -1061,6 +1078,8 @@ body[data-view="map"] .tabbar { display: none; }
   function fieldReady() {
     if (LAYERS[layer].kind === "field") { setupSlider(); drawField(); }
     else if (layer === "radar") { radarMax(); if (tIndex >= radar.frames.length) frame(); }
+    else if (LAYERS[layer].kind === "none") $("tlabel").textContent = "ตอนนี้";
+    drawExtras();
   }
   function drawNowcast(k) {
     const times = nowcastTimes(), t = times[Math.min(k, times.length - 1)];
@@ -1188,6 +1207,8 @@ body[data-view="map"] .tabbar { display: none; }
       showRadar(tIndex);
     } else if (kind === "sat") {
       sl.max = "6"; tIndex = 6; sl.value = "6";
+    } else if (kind === "none") {
+      sl.max = "0"; tIndex = 0; sl.value = "0"; $("tlabel").textContent = field ? "ตอนนี้" : "แผนที่ว่าง";
     } else if (field) {
       const now = field.start - field.first;
       const max = Math.min(now + 48, field.times.length - 1 - field.first);
@@ -1202,7 +1223,8 @@ body[data-view="map"] .tabbar { display: none; }
   }
   function frame() {
     const kind = LAYERS[layer].kind;
-    if (kind === "radar") { if (tIndex < radar.frames.length) showRadar(tIndex); else drawNowcast(tIndex - radar.frames.length); } else if (kind === "sat") showSat(); else { drawField(); }
+    if (kind === "radar") { if (tIndex < radar.frames.length) showRadar(tIndex); else drawNowcast(tIndex - radar.frames.length); } else if (kind === "sat") showSat(); else if (kind === "field") { drawField(); }
+    drawExtras();
     fillSlider();
   }
 
@@ -1221,7 +1243,9 @@ body[data-view="map"] .tabbar { display: none; }
       else { radar.layers.forEach((l) => { if (!map.hasLayer(l)) l.addTo(map); }); setupSlider(); }
       ensureField(false);
     } else if (L0.kind === "sat") {
-      setupSlider(); showSat();
+      setupSlider(); showSat(); if (extrasOn()) ensureField(false);
+    } else if (L0.kind === "none") {
+      setupSlider(); ensureField(false);
     } else {
       tIndex = -1;
       ensureField(false);
@@ -1315,7 +1339,7 @@ body[data-view="map"] .tabbar { display: none; }
         const link = live || (w.urls && w.urls.detail) || "https://www.windy.com/webcams/" + w.webcamId;
         const esc = (t) => String(t || "").replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
         const upd = w.lastUpdatedOn ? new Date(w.lastUpdatedOn).toLocaleString("th-TH", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" }) : "";
-        L.marker([w.location.latitude, w.location.longitude], { icon: L.divIcon({ className: "", html: '<div class="cam-ic">' + CAM_ICON + "</div>", iconSize: [30, 30], iconAnchor: [15, 15] }), zIndexOffset: 500 })
+        L.marker([w.location.latitude, w.location.longitude], { icon: L.divIcon({ className: "", html: camPreview && img ? '<div class="cam-pv"><img src="' + esc(img) + '" alt="" loading="lazy"></div>' : '<div class="cam-ic">' + CAM_ICON + "</div>", iconSize: camPreview && img ? [74, 46] : [30, 30], iconAnchor: camPreview && img ? [37, 23] : [15, 15] }), zIndexOffset: 500 })
           .bindPopup('<div class="campop">' + (img ? '<img src="' + esc(img) + '" alt="">' : "") + "<b>" + esc(w.title) + "</b><span>" + esc(w.location.city || "") + (upd ? " · ภาพเมื่อ " + upd : "") + '</span><br><a href="' + esc(link) + '" target="_blank" rel="noopener">ดูภาพสด / ย้อนหลัง ↗</a> <span>· Windy.com</span></div>', { maxWidth: 260 , autoPanPaddingTopLeft: [16, 90], autoPanPaddingBottomRight: [16, 100] })
           .addTo(camLayer);
       });
@@ -1388,6 +1412,84 @@ body[data-view="map"] .tabbar { display: none; }
     setPlace({ ...n, lat, lon }, { keepView: true });
     setView("flood");
   });
+
+  // ----- extras drawn from the forecast grid: pressure isolines and forecast pins; plus favourite places -----
+  let isobarsOn = store.get("wx-isobars", false), pinsOn = store.get("wx-pins", false), favsOn = store.get("wx-favpins", true), camPreview = store.get("wx-campv", false);
+  let isoLayer = null, pinLayer = null, favLayer = null;
+  function extrasOn() { return isobarsOn || pinsOn; }
+  function fieldTi() { return LAYERS[layer].kind === "field" ? field.first + Math.max(0, tIndex) : field.start; }
+  function cellLatLng(gx, gy) {
+    const b = field.bounds;
+    return [b.getNorth() - (gy / (GRID - 1)) * (b.getNorth() - b.getSouth()), b.getWest() + (gx / (GRID - 1)) * (b.getEast() - b.getWest())];
+  }
+  function drawExtras() {
+    if (!map) return;
+    if (!isoLayer) { isoLayer = L.layerGroup().addTo(map); pinLayer = L.layerGroup().addTo(map); }
+    isoLayer.clearLayers(); pinLayer.clearLayers();
+    if (!field || !field.pres) return;
+    const ti = fieldTi();
+    if (isobarsOn) drawIsobars(ti);
+    if (pinsOn) drawPins(ti);
+  }
+  // marching squares on the pressure grid, upsampled 3x for smoother lines, a line every 2 hPa
+  function drawIsobars(ti) {
+    const UP = 3, N = (GRID - 1) * UP + 1, v = new Float32Array(N * N);
+    let lo = Infinity, hi = -Infinity;
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const x = gridAt(field.pres, c / UP, r / UP, ti);
+      v[r * N + c] = x == null ? NaN : x;
+      if (x != null) { lo = Math.min(lo, x); hi = Math.max(hi, x); }
+    }
+    if (!isFinite(lo)) return;
+    const step = hi - lo > 24 ? 4 : 2;
+    for (let lev = Math.ceil(lo / step) * step; lev <= hi; lev += step) {
+      const segs = [];
+      for (let r = 0; r < N - 1; r++) for (let c = 0; c < N - 1; c++) {
+        const a = v[r * N + c], b = v[r * N + c + 1], d = v[(r + 1) * N + c + 1], e = v[(r + 1) * N + c];
+        if (isNaN(a) || isNaN(b) || isNaN(d) || isNaN(e)) continue;
+        const pts = [];
+        const edge = (p, q, x0, y0, x1, y1) => { if ((p < lev) !== (q < lev)) { const t = (lev - p) / (q - p); pts.push([x0 + (x1 - x0) * t, y0 + (y1 - y0) * t]); } };
+        edge(a, b, c, r, c + 1, r); edge(b, d, c + 1, r, c + 1, r + 1); edge(e, d, c, r + 1, c + 1, r + 1); edge(a, e, c, r, c, r + 1);
+        if (pts.length === 2) segs.push(pts);
+        else if (pts.length === 4) { segs.push([pts[0], pts[1]]); segs.push([pts[2], pts[3]]); }
+      }
+      if (!segs.length) continue;
+      const ll = segs.map((sg) => sg.map(([x, y]) => cellLatLng(x / UP, y / UP)));
+      L.polyline(ll, { color: "#FFFFFF", weight: lev % 4 === 0 ? 1.6 : 1, opacity: 0.6, interactive: false }).addTo(isoLayer);
+      const mid = segs[Math.floor(segs.length / 2)][0];
+      L.marker(cellLatLng(mid[0] / UP, mid[1] / UP), { icon: L.divIcon({ className: "", html: '<div class="iso-l">' + lev + "</div>", iconSize: [0, 0] }), interactive: false }).addTo(isoLayer);
+    }
+  }
+  function drawPins(ti) {
+    const b = map.getBounds();
+    for (let r = 1; r < GRID; r += 3) for (let c = 1; c < GRID; c += 3) {
+      const k = r * GRID + c, t = field.temp[k], cd = field.code[k];
+      if (!t || !cd || t[ti] == null) continue;
+      const pos = cellLatLng(c, r);
+      if (!b.contains(pos)) continue;
+      const day = field.isday[k] ? field.isday[k][ti] : 1;
+      L.marker(pos, { icon: L.divIcon({ className: "", html: '<div class="pin" title="' + codeInfo(cd[ti]).t + '">' + icon(cd[ti], day, 30) + Math.round(t[ti]) + "°</div>", iconSize: [0, 0] }), interactive: false }).addTo(pinLayer);
+    }
+  }
+  function drawFavs() {
+    if (!map) return;
+    if (!favLayer) favLayer = L.layerGroup().addTo(map);
+    favLayer.clearLayers();
+    if (!favsOn) return;
+    favs.forEach((f) => {
+      const esc = (t) => String(t || "").replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+      L.marker([f.lat, f.lon], { icon: L.divIcon({ className: "", html: '<div class="fav-pin"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.2-9.4C1.6 7.6 4 4.2 7.4 4.2c2 0 3.6 1.1 4.6 2.7 1-1.6 2.6-2.7 4.6-2.7 3.4 0 5.8 3.4 4.6 6.9-1.7 4.8-9.2 9.4-9.2 9.4z" fill="#fff"/></svg>' + esc(f.name) + "</div>", iconSize: [0, 0] }), zIndexOffset: 800, bubblingMouseEvents: false })
+        .on("click", () => setPlace(f, { keepView: true })).addTo(favLayer);
+    });
+  }
+  function bindToggle(id, get, set) {
+    $(id).checked = get();
+    $(id).onchange = (e) => { set(e.target.checked); };
+  }
+  bindToggle("tg-isobars", () => isobarsOn, (v) => { isobarsOn = v; store.set("wx-isobars", v); if (field && field.pres) drawExtras(); else ensureField(false); });
+  bindToggle("tg-pins", () => pinsOn, (v) => { pinsOn = v; store.set("wx-pins", v); if (field && field.pres) drawExtras(); else ensureField(false); });
+  bindToggle("tg-favs", () => favsOn, (v) => { favsOn = v; store.set("wx-favpins", v); drawFavs(); });
+  bindToggle("tg-campv", () => camPreview, (v) => { camPreview = v; store.set("wx-campv", v); camAt = null; if (!camsOn && v) { camsOn = true; store.set("wx-cams", true); } syncCams(); });
 
   function syncCams() {
     $("tg-cams").checked = camsOn;
@@ -1599,6 +1701,7 @@ body[data-view="map"] .tabbar { display: none; }
   initMap();
   syncCams();
   syncRivers();
+  drawFavs();
   loadForecast();
   if (startView && startView !== "today") setView(startView);
 })();

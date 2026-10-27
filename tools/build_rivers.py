@@ -85,6 +85,67 @@ def load_geometry():
     return ways
 
 
+FLOW_FILE = "rivers-flow.json"
+MED_BUDGET = 1200      # new cells per run for the 30-day normal (keeps each run under the hourly API limit)
+
+
+def flood_batch(part, params):
+    url = "https://flood-api.open-meteo.com/v1/flood?" + urllib.parse.urlencode(dict(
+        latitude=",".join(f"{k[0]:.3f}" for k in part), longitude=",".join(f"{k[1]:.3f}" for k in part), **params))
+    for k, wait in enumerate((0, 70, 150, 300)):
+        time.sleep(wait)
+        try:
+            req = urllib.request.Request(url, headers=UA)
+            with urllib.request.urlopen(req, timeout=120) as r:
+                j = json.load(r)
+            return j if isinstance(j, list) else [j]
+        except Exception as e:  # noqa: BLE001
+            print("flood retry", k + 1, e, file=sys.stderr)
+    return None
+
+
+def load_flow(keys):
+    """Two passes, both resumable: the normal flow (30-day median, refreshed monthly) and the 14-day peak forecast (daily)."""
+    flow = json.load(open(FLOW_FILE)) if os.path.exists(FLOW_FILE) else {}
+    now = time.time()
+    kid = lambda k: f"{k[0]:.2f},{k[1]:.2f}"
+    need_med = [k for k in keys if kid(k) not in flow or now - flow[kid(k)].get("mat", 0) > 30 * 86400][:MED_BUDGET]
+    print("normal-flow cells this run", len(need_med))
+    for b in range(0, len(need_med), 50):
+        part = need_med[b:b + 50]
+        j = flood_batch(part, {"daily": "river_discharge", "past_days": 30, "forecast_days": 1})
+        if j is None:
+            print("stopping normal-flow pass early (API busy)"); break
+        for k, loc in zip(part, j):
+            q = [v for v in ((loc or {}).get("daily") or {}).get("river_discharge") or [] if v is not None]
+            e = flow.setdefault(kid(k), {})
+            e["mat"] = now
+            e["med"] = round(sorted(q)[len(q) // 2], 1) if q else None
+        time.sleep(15)
+    json.dump(flow, open(FLOW_FILE, "w"), separators=(",", ":"))
+    # peak forecast only for cells that sit on a real river
+    river = [k for k in keys if (flow.get(kid(k)) or {}).get("med") is not None and flow[kid(k)]["med"] >= 3]
+    need_pk = [k for k in river if now - flow[kid(k)].get("pat", 0) > 18 * 3600]
+    print("river cells", len(river), "peak forecast this run", len(need_pk))
+    for b in range(0, len(need_pk), 100):
+        part = need_pk[b:b + 100]
+        j = flood_batch(part, {"daily": "river_discharge,river_discharge_max", "forecast_days": 14})
+        if j is None:
+            print("stopping peak pass early (API busy)"); break
+        for k, loc in zip(part, j):
+            d = (loc or {}).get("daily") or {}
+            q, qm, t = d.get("river_discharge") or [], d.get("river_discharge_max") or [], d.get("time") or []
+            if not t:
+                continue
+            qm = [x if x is not None else 0 for x in (qm or q)]
+            i = max(range(len(qm)), key=lambda n: qm[n])
+            e = flow[kid(k)]
+            e.update(pat=now, peak=round(qm[i], 1), now=round(q[0] or 0, 1) if q else 0, day=t[i])
+        time.sleep(12)
+    json.dump(flow, open(FLOW_FILE, "w"), separators=(",", ":"))
+    return flow
+
+
 def main():
     ways = load_geometry()
     # sample points along each river, one per GloFAS cell (0.05 deg)
@@ -110,32 +171,12 @@ def main():
             w["keys"].append(key)
     keys = list(cells)
     print("cells", len(keys))
-    today = datetime.now(timezone.utc).date().isoformat()
-    for b in range(0, len(keys), 100):
-        part = keys[b:b + 100]
-        url = "https://flood-api.open-meteo.com/v1/flood?" + urllib.parse.urlencode({
-            "latitude": ",".join(f"{k[0]:.3f}" for k in part), "longitude": ",".join(f"{k[1]:.3f}" for k in part),
-            "daily": "river_discharge,river_discharge_max", "past_days": 60, "forecast_days": 15})
-        j = http(url)
-        if isinstance(j, dict):
-            j = [j]
-        for key, loc in zip(part, j):
-            d = (loc or {}).get("daily") or {}
-            q, qm, t = d.get("river_discharge"), d.get("river_discharge_max"), d.get("time")
-            if not q or not t:
-                continue
-            qm = qm or q
-            ti = t.index(today) if today in t else 60
-            past = sorted(v for v in q[:ti] if v is not None)
-            if not past:
-                continue
-            med = past[len(past) // 2]
-            peak, pat = 0.0, ti
-            for i in range(ti, min(len(qm), ti + 14)):
-                if (qm[i] or 0) > peak:
-                    peak, pat = qm[i] or 0, i
-            cells[key] = (round(med, 1), round(peak, 1), round(q[ti] or 0, 1), t[pat])
-        time.sleep(12)  # stay well under the per-minute limit
+    flow = load_flow(keys)
+    # every stretch keeps the fields it has: [first vertex index, med, peak, now, peakDay]
+    for key in keys:
+        f = flow.get(f"{key[0]:.2f},{key[1]:.2f}")
+        if f and f.get("med") is not None and f["med"] >= 3 and f.get("peak") is not None:
+            cells[key] = (f["med"], f["peak"], f["now"], f["day"])
     out = []
     for idx, w in enumerate(ways):
         vals = [cells[k] if cells[k] and cells[k][0] >= 3 else None for k in w["keys"]]

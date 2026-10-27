@@ -1,7 +1,7 @@
 name: Update river flood risk
 on:
   schedule:
-    - cron: "30 22 * * *"   # 05:30 Thai time, after GloFAS updates
+    - cron: "30 */3 * * *"   # every 3 h: fills the normal-flow table in steps, refreshes peaks once a day
   workflow_dispatch:
 permissions:
   contents: write
@@ -19,6 +19,6 @@ jobs:
         run: |
           git config user.name "rivers-bot"
           git config user.email "rivers-bot@users.noreply.github.com"
-          git add -A rivers rivers-geom.json
+          git add -A rivers rivers-geom.json rivers-flow.json
           git diff --cached --quiet || git commit -m "Update river flood risk data"
           git pull --rebase origin main && git push

@@ -567,6 +567,9 @@ body[data-view="map"] .tabbar { display: none; }
 
 
   // ---------- forecast for the chosen place ----------
+  // map grids cost hundreds of API calls; let the main forecast go first so it never loses to them on the free per-minute limit
+  let fcGate = null, fcRetry = 0;
+  const fcReady = new Promise((res) => { fcGate = res; });
   async function loadForecast() {
     setStatus("");
     const p = new URLSearchParams({
@@ -584,17 +587,22 @@ body[data-view="map"] .tabbar { display: none; }
       store.set("wx-cache", { place, model, fc, at: Date.now() });
       setStatus("อัปเดตล่าสุด " + new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }) + " น.");
     } catch (e) {
+      const busy = String(e && e.message) === "HTTP 429";
+      if (busy && fcRetry < 4) { fcRetry++; setTimeout(loadForecast, 12000 * fcRetry); }
       const c = store.get("wx-cache", null);
       if (c && c.place && c.place.lat === place.lat && c.place.lon === place.lon) {
         fc = c.fc;
         setStatus("ออฟไลน์อยู่ แสดงข้อมูลที่บันทึกไว้เมื่อ " + new Date(c.at).toLocaleString("th-TH"));
       } else {
         fc = null;
-        setStatus("โหลดพยากรณ์ไม่ได้ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่" + (model !== "best_match" ? " หรือเปลี่ยนแหล่งข้อมูลเป็นอัตโนมัติ" : ""), true);
+        setStatus(busy ? "ระบบข้อมูลพยากรณ์ไม่ว่างชั่วคราว กำลังลองใหม่อัตโนมัติ…" : "โหลดพยากรณ์ไม่ได้ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่" + (model !== "best_match" ? " หรือเปลี่ยนแหล่งข้อมูลเป็นอัตโนมัติ" : ""), !busy);
       }
+      if (busy && fc) setStatus("ระบบข้อมูลไม่ว่างชั่วคราว แสดงข้อมูลที่บันทึกไว้ กำลังลองใหม่…");
     }
+    if (fc) fcRetry = 0;
     render();
     loadFlood();
+    fcGate();
   }
   function setStatus(t, err) {
     $("status").textContent = t; $("status").className = "status" + (err ? " err" : "");
@@ -967,6 +975,7 @@ body[data-view="map"] .tabbar { display: none; }
 
   // ----- forecast field from a grid of points -----
   async function ensureField(force) {
+    await fcReady;
     const vb = map.getBounds();
     const needWave = layer === "waves";
     if (!force && field && field.bounds.contains(vb) && Math.abs(field.zoom - map.getZoom()) < 2 && (!needWave || field.wave) && field.pres) { fieldReady(); return; }
@@ -1351,7 +1360,9 @@ body[data-view="map"] .tabbar { display: none; }
   // ----- rivers at risk: river lines from OpenStreetMap, coloured by GloFAS flow along each stretch -----
   let riversOn = store.get("wx-rivers", false), riverLayer = null, riverSeq = 0, riverAt = null;
   const riverRender = window.L ? L.canvas({ padding: 0.3, tolerance: 6 }) : null;
-  const flowCache = new Map();          // "lat,lon" -> {med, peak, peakAt, now, time} or null
+  // river flow readings, kept on the device for 6 h so panning back and reopening the app costs no API calls
+  const flowCache = new Map((() => { const c = store.get("wx-flow", null); return c && Date.now() - c.at < 6 * 3600e3 ? c.data : []; })());
+  let flowSavedAt = (() => { const c = store.get("wx-flow", null); return c && Date.now() - c.at < 6 * 3600e3 ? c.at : Date.now(); })();
   const kmBetween = (a, b) => { const R = 6371, dLat = (b.lat - a.lat) * Math.PI / 180, dLon = (b.lon - a.lon) * Math.PI / 180, m = Math.cos((a.lat + b.lat) * Math.PI / 360); return R * Math.sqrt(dLat * dLat + (dLon * m) * (dLon * m)); };
   async function overpass(q) {
     for (const host of ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]) {
@@ -1382,9 +1393,11 @@ body[data-view="map"] .tabbar { display: none; }
         flowCache.set(p.key, v);
       });
     }
+    if (need.length) { const all = Array.from(flowCache.entries()).slice(-3000); store.set("wx-flow", { at: flowSavedAt, data: all }); }
   }
   async function loadRivers() {
     if (!map || !riversOn || (view !== "map" && view !== "today")) return;
+    await fcReady;
     if (map.getZoom() < 6) { $("river-note").textContent = "ซูมแผนที่เข้าใกล้อีกหน่อยเพื่อดูเส้นแม่น้ำ"; if (riverLayer) riverLayer.clearLayers(); riverAt = null; return; }
     const vb = map.getBounds();
     if (riverAt && riverAt.b.contains(vb) && map.getZoom() >= riverAt.z) return;
@@ -1398,7 +1411,7 @@ body[data-view="map"] .tabbar { display: none; }
       // sample points along every river, spaced so the whole view needs at most ~300 flow lookups
       let total = 0;
       ways.forEach((w) => { w.cum = [0]; for (let i = 1; i < w.geometry.length; i++) w.cum.push(w.cum[i - 1] + kmBetween(w.geometry[i - 1], w.geometry[i])); total += w.cum[w.cum.length - 1]; });
-      const D = Math.max(4, total / 300);
+      const D = Math.max(5, total / 120);
       const samples = [];
       ways.forEach((w) => {
         const len = w.cum[w.cum.length - 1], n = Math.max(1, Math.round(len / D));

@@ -86,6 +86,55 @@ button { cursor: pointer; }
 /* ---------- map ---------- */
 .mapwrap { position: relative; }
 #map { height: 46vh; min-height: 280px; max-height: 520px; background: #233a52; }
+.fullbtn { position: absolute; top: 10px; right: max(10px, env(safe-area-inset-right, 0px)); z-index: 600; width: 40px; height: 40px; border-radius: 12px; border: 0; background: rgba(30,32,36,.82); color: #fff; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+body.mapfull { overflow: hidden; }
+body.mapfull .mapwrap { position: fixed; inset: 0; z-index: 1100; background: #233a52; }
+body.mapfull #map { height: 100%; max-height: none; }
+body.mapfull .layerbtn, body.mapfull .fullbtn { top: calc(env(safe-area-inset-top, 0px) + 10px); }
+body.mapfull .scale { top: calc(env(safe-area-inset-top, 0px) + 60px); }
+body.mapfull .timebar { padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+body.mapfull .chips { bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
+body.mapfull .leaflet-top.leaflet-right { top: calc(env(safe-area-inset-top, 0px) + 54px); }
+.chip .badge.flood { background: #2f6db5; color: #fff; }
+.chip .badge.flood.lv1 { background: #c48a2c; } .chip .badge.flood.lv2 { background: #d0561f; } .chip .badge.flood.lv3 { background: #b42318; }
+/* flood watch */
+:root { --fl0: #9cc8ec; --fl1: #3d8fd6; --fl2: #e08a1e; --fl3: #c0352b; }
+.flood { margin: 10px max(12px, env(safe-area-inset-left, 0px)) 6px; border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 10px; background: var(--bg); }
+.flood { scroll-margin-top: 70px; }
+.flood > * { min-width: 0; }
+.flood-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.flood-head h2 { margin: 0; font-size: 1.15rem; font-weight: 600; }
+.risk { border-radius: 999px; padding: 2px 12px; font-size: .9rem; font-weight: 600; color: #fff; background: #3b8a5a; }
+.risk.lv1 { background: #c48a2c; } .risk.lv2 { background: #d0561f; } .risk.lv3 { background: #b42318; }
+.ftip { margin: 0; font-weight: 500; }
+.fwhy { margin: 0; padding-left: 1.1em; display: grid; gap: 3px; font-size: .9rem; overflow-wrap: anywhere; }
+.fwhy li.lv2, .fwhy li.lv3 { color: #c2410c; }
+.ftiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.ftile { border-radius: 10px; background: color-mix(in srgb, var(--rain-fill) 55%, var(--bg)); padding: 8px 10px; display: grid; gap: 2px; min-width: 0; }
+.ftile span { font-size: .75rem; color: var(--muted); }
+.ftile b { font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ftile b small { font-size: .7rem; font-weight: 400; color: var(--muted); }
+.ftile.hot { background: color-mix(in srgb, #e08a1e 22%, var(--bg)); }
+.fsub { font-size: .9rem; font-weight: 500; }
+.fchart { overflow-x: auto; }
+.fchart svg { display: block; width: 100%; height: auto; }
+.fchart text { font-size: 11px; fill: var(--muted); font-family: var(--font); }
+.fchart text.today { fill: var(--accent); font-weight: 600; }
+.fchart text.bv { fill: var(--ink); font-size: 10px; }
+.fchart text.thl { fill: #c2410c; font-size: 10px; }
+.fchart text.side { font-size: 10px; }
+.fchart .gl { stroke: var(--line); }
+.fchart .th { stroke: #e0a070; stroke-dasharray: 4 3; }
+.fchart .nowl { stroke: var(--accent); stroke-dasharray: 3 3; }
+.fchart .rpast { fill: none; stroke: #6b8fb8; stroke-width: 2; }
+.fchart .rfut { fill: none; stroke: var(--rain); stroke-width: 2.5; }
+.fchart .rmax { fill: none; stroke: #e08a1e; stroke-width: 1.5; stroke-dasharray: 5 3; }
+.flegend { display: flex; gap: 14px; font-size: .75rem; color: var(--muted); flex-wrap: wrap; }
+.flegend i { display: inline-block; width: 16px; height: 3px; vertical-align: middle; margin-right: 5px; }
+.flegend .lp { background: #6b8fb8; } .flegend .lf { background: var(--rain); } .flegend .lm { background: #e08a1e; }
+.muted { color: var(--muted); }
+.small { font-size: .78rem; margin: 0; }
+.flood a { color: inherit; }
 .leaflet-container { font-family: var(--font); }
 .basemap { filter: saturate(.45) brightness(1.03) contrast(.95); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .basemap { filter: saturate(.35) brightness(.72) contrast(1.1); } }
@@ -247,10 +296,12 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
   <div id="map" role="application" aria-label="แผนที่สภาพอากาศ แตะเพื่อดูพยากรณ์ตรงจุดนั้น"></div>
   <button type="button" class="layerbtn" id="btn-layers" aria-haspopup="dialog" aria-controls="drawer"><span class="ic" id="layer-ic"></span><span id="layer-name">เรดาร์</span>
     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5z M2 12l10 5 10-5 M2 16l10 5 10-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></button>
+  <button type="button" class="fullbtn" id="btn-full" aria-label="ขยายแผนที่เต็มจอ" aria-pressed="false"></button>
   <div class="scale" id="scale"></div>
   <div class="maploading" id="maploading" hidden>กำลังโหลดแผนที่สภาพอากาศ…</div>
   <div class="chips">
     <button class="chip" id="chip-warn" type="button" hidden><span class="badge warn"><svg width="34" height="30" viewBox="0 0 34 30" aria-hidden="true"><path d="M7 4l-4 8.5a4.3 4.3 0 1 0 8 0z M17 2l-4 8.5a4.3 4.3 0 1 0 8 0z M27 4l-4 8.5a4.3 4.3 0 1 0 8 0z" fill="#fff" transform="translate(0 6)"/></svg></span><span id="warn-text">เตือนสภาพอากาศ</span></button>
+    <button class="chip" id="chip-flood" type="button" hidden><span class="badge flood"><svg width="34" height="30" viewBox="0 0 34 30" aria-hidden="true"><path d="M5 14 17 4l12 10v4H5z" fill="#fff"/><path d="M2 22c3-2.5 6-2.5 9 0s6 2.5 9 0 6-2.5 9 0 M2 28c3-2.5 6-2.5 9 0s6 2.5 9 0 6-2.5 9 0" stroke="#fff" stroke-width="2.4" fill="none"/></svg></span><span id="flood-chip-text">น้ำท่วม</span></button>
     <div class="chip" id="chip-now" hidden><span class="badge now"><b id="now-temp">–</b><small id="now-wind">–</small></span><span id="now-text">สภาพอากาศตอนนี้</span></div>
   </div>
   <div class="timebar">
@@ -284,6 +335,10 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
 </nav>
 
 <main>
+  <section class="flood" id="flood" aria-labelledby="flood-h" hidden>
+    <div class="flood-head"><h2 id="flood-h">เฝ้าระวังน้ำท่วม</h2><span class="risk" id="flood-level"></span></div>
+    <div id="flood-body"></div>
+  </section>
   <div class="dayhead" id="dayhead"></div>
   <div class="tablebox" id="tablebox"><div class="skeleton"></div></div>
   <div class="status" id="status" role="status"></div>
@@ -440,6 +495,7 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
       }
     }
     render();
+    loadFlood();
   }
   function setStatus(t, err) { $("status").textContent = t; $("status").className = "status" + (err ? " err" : ""); }
 
@@ -722,7 +778,7 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
   };
 
   // ---------- map with a colour weather field ----------
-  const GRID = 13;                    // GRID × GRID points per map fetch
+  const GRID = 15;                    // GRID × GRID points per map fetch
   const LAYERS = {
     radar: { name: "เรดาร์ภาพอากาศ", kind: "radar", thumb: "radial-gradient(circle at 30% 60%,#f33 0 8%,#fb3 14%,#4c4 26%,#3ae 40%,transparent 55%),radial-gradient(circle at 75% 35%,#fd3 0 6%,#4c4 16%,#3ae 30%,transparent 45%),linear-gradient(135deg,#2e5a3a,#3a6f8f)", icon: '<path d="M14 26a8 8 0 1 1 6-13.5A6 6 0 1 1 22 26z M18 20l-3 6h4l-2 6 6-8h-4l2-4z" fill="#fff"/>' },
     sat: { name: "ดาวเทียม", kind: "sat", thumb: "radial-gradient(ellipse at 30% 40%,#fff 0 18%,transparent 40%),radial-gradient(ellipse at 70% 70%,#eef 0 14%,transparent 35%),linear-gradient(135deg,#2a4f7a,#3e6b3a 60%,#7b6a45)", icon: '<path d="M9 13l6-6 4 4-6 6z M21 19l6-6 4 4-6 6z M15 17l6 6 M17 15l4 4 M9 27a6 6 0 0 0 6-6" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/>' },
@@ -857,7 +913,7 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
   function drawField() {
     if (!field || LAYERS[layer].kind !== "field") return;
     const ti = field.first + tIndex;
-    const R = 160;
+    const R = 240;
     const cv = document.createElement("canvas"); cv.width = R; cv.height = R;
     const ctx = cv.getContext("2d"), img = ctx.createImageData(R, R);
     let accum = null;
@@ -1065,6 +1121,157 @@ table.fc { border-collapse: collapse; position: relative; z-index: 1; min-width:
   $("tg-particles").onchange = (e) => { particlesOn = e.target.checked; store.set("wx-particles", particlesOn); particles.reset(); };
   buildMenu();
 
+
+  // ---------- flood watch: rain totals + river flow ----------
+  let floodSeq = 0;
+  async function loadFlood() {
+    const seq = ++floodSeq;
+    const box = $("flood");
+    box.hidden = false;
+    $("flood-body").innerHTML = '<div class="skeleton" style="height:160px;border-radius:10px"></div>';
+    const lat = place.lat.toFixed(4), lon = place.lon.toFixed(4);
+    const rainP = fetch("https://api.open-meteo.com/v1/forecast?" + new URLSearchParams({ latitude: lat, longitude: lon, timezone: "auto", past_days: "7", forecast_days: "8", daily: "precipitation_sum", models: model }))
+      .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const riverP = fetch("https://flood-api.open-meteo.com/v1/flood?" + new URLSearchParams({ latitude: lat, longitude: lon, daily: "river_discharge,river_discharge_max", past_days: "60", forecast_days: "30" }))
+      .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const [rain, river] = await Promise.all([rainP, riverP]);
+    if (seq !== floodSeq) return;
+    if (!rain || !rain.daily) { $("flood-body").innerHTML = '<p class="muted">โหลดข้อมูลฝนสะสมไม่ได้ ลองใหม่อีกครั้ง</p>'; $("flood-level").textContent = ""; return; }
+    renderFlood(rain.daily, river && river.daily ? river.daily : null);
+  }
+
+  function assessFlood(days, river) {
+    const t = days.time, p = days.precipitation_sum.map((v) => v || 0);
+    const today = t.indexOf(new Date().toLocaleDateString("sv-SE")) >= 0 ? t.indexOf(new Date().toLocaleDateString("sv-SE")) : 7;
+    const sum = (a, b) => p.slice(Math.max(0, a), Math.max(0, b)).reduce((x, y) => x + y, 0);
+    const s = {
+      past1: sum(today - 1, today), past3: sum(today - 3, today), past7: sum(today - 7, today),
+      next1: sum(today, today + 1), next3: sum(today, today + 3), next7: sum(today, today + 7),
+    };
+    // wettest 3-day window that touches the coming week (includes rain already on the ground)
+    let w3 = 0, w3at = today;
+    for (let i = Math.max(0, today - 2); i <= Math.min(p.length - 3, today + 5); i++) { const v = p[i] + p[i + 1] + p[i + 2]; if (v > w3) { w3 = v; w3at = i; } }
+    let d1 = 0, d1at = today;
+    for (let i = today; i < Math.min(p.length, today + 7); i++) if (p[i] > d1) { d1 = p[i]; d1at = i; }
+    let level = 0; const why = [];
+    const bump = (lv, text) => { if (lv > level) level = lv; why.push({ lv, text }); };
+    const dname = (i) => { const d = parseLocal(t[i]); return (i === today ? "วันนี้" : i === today + 1 ? "พรุ่งนี้" : DAY_FULL[d.date.getDay()] + " " + d.d + " " + MON[d.m - 1]); };
+    if (d1 >= 150) bump(3, "คาดฝนตกหนักมากถึง " + d1.toFixed(0) + " มม. ใน " + dname(d1at));
+    else if (d1 >= 90) bump(2, "คาดฝนหนักมาก " + d1.toFixed(0) + " มม. ใน " + dname(d1at) + " (เกิน 90 มม./วัน)");
+    else if (d1 >= 35) bump(1, "คาดฝนหนัก " + d1.toFixed(0) + " มม. ใน " + dname(d1at));
+    if (w3 >= 200) bump(3, "ฝนสะสม 3 วันสูงถึง " + w3.toFixed(0) + " มม. (" + dname(w3at) + " ถึง " + dname(w3at + 2) + ")");
+    else if (w3 >= 120) bump(2, "ฝนสะสม 3 วัน " + w3.toFixed(0) + " มม. (" + dname(w3at) + " ถึง " + dname(w3at + 2) + ") ดินอิ่มน้ำ เสี่ยงน้ำท่วมฉับพลัน");
+    else if (w3 >= 60) bump(1, "ฝนสะสม 3 วัน " + w3.toFixed(0) + " มม. ควรติดตาม");
+    if (s.past7 >= 150 && s.next3 >= 30) bump(Math.min(3, level + 1 || 1), "สัปดาห์ที่ผ่านมาฝนตกแล้ว " + s.past7.toFixed(0) + " มม. ดินอุ้มน้ำได้น้อย ฝนที่ตกเพิ่มจะไหลบ่าเร็ว");
+    let rv = null;
+    if (river && river.river_discharge) {
+      const rt = river.time, q = river.river_discharge, qmax = river.river_discharge_max || q;
+      const ti = rt.indexOf(t[today]);
+      const pastQ = q.slice(0, ti > 0 ? ti : 60).filter((v) => v != null).sort((a, b) => a - b);
+      const med = pastQ.length ? pastQ[Math.floor(pastQ.length / 2)] : null;
+      let peak = 0, peakAt = -1;
+      for (let i = Math.max(0, ti); i < Math.min(qmax.length, (ti > 0 ? ti : 60) + 14); i++) if ((qmax[i] || 0) > peak) { peak = qmax[i]; peakAt = i; }
+      const now = ti >= 0 ? q[ti] : null;
+      if (med != null && med >= 3) {
+        const ratio = peak / Math.max(med, 0.1);
+        rv = { med, peak, peakAt, now, ratio, time: rt, q, qmax, ti };
+        const when = peakAt >= 0 ? (() => { const d = parseLocal(rt[peakAt]); return d.d + " " + MON[d.m - 1]; })() : "";
+        if (ratio >= 8) bump(3, "แม่น้ำใกล้จุดนี้คาดว่าน้ำจะสูงกว่าปกติราว " + ratio.toFixed(1) + " เท่า ช่วง " + when);
+        else if (ratio >= 4) bump(2, "แม่น้ำใกล้จุดนี้คาดว่าน้ำจะมากกว่าปกติ " + ratio.toFixed(1) + " เท่า ช่วง " + when);
+        else if (ratio >= 2) bump(1, "ระดับน้ำในแม่น้ำใกล้จุดนี้เพิ่มขึ้นเป็น " + ratio.toFixed(1) + " เท่าของปกติ ช่วง " + when);
+      }
+    }
+    if (!why.length) why.push({ lv: 0, text: "ฝนสะสมย้อนหลังและที่คาดในสัปดาห์หน้ายังอยู่ในเกณฑ์ปกติ" });
+    return { s, level, why, today, p, t, rv };
+  }
+
+  const FLOOD_LV = [
+    { name: "ความเสี่ยงต่ำ", cls: "lv0", tip: "ใช้ชีวิตได้ตามปกติ" },
+    { name: "เฝ้าระวัง", cls: "lv1", tip: "ติดตามข่าวพยากรณ์ ระวังน้ำท่วมขังในที่ลุ่มต่ำ" },
+    { name: "เสี่ยงสูง", cls: "lv2", tip: "เตรียมยกของขึ้นที่สูง เตรียมเส้นทางอพยพ ติดตามประกาศจากหน่วยงานท้องถิ่น" },
+    { name: "เสี่ยงสูงมาก", cls: "lv3", tip: "ระวังน้ำป่าไหลหลากและน้ำท่วมฉับพลัน หลีกเลี่ยงริมน้ำและที่ลาดเชิงเขา ทำตามประกาศของทางการ" },
+  ];
+
+  function renderFlood(days, river) {
+    const a = assessFlood(days, river);
+    const L0 = FLOOD_LV[a.level];
+    const lvEl = $("flood-level");
+    lvEl.textContent = L0.name; lvEl.className = "risk " + L0.cls;
+    const tile = (label, v, hot) => '<div class="ftile' + (hot ? " hot" : "") + '"><span>' + label + "</span><b>" + v.toFixed(v >= 100 ? 0 : 1) + "<small> มม.</small></b></div>";
+    // daily bars: 7 days back + 7 days ahead
+    const from = Math.max(0, a.today - 7), to = Math.min(a.p.length, a.today + 7);
+    const W = 420, H = 180, L = 28, R = 6, T = 16, B = 30, n = to - from, bw = (W - L - R) / n;
+    const max = Math.max(20, ...a.p.slice(from, to)) * 1.12;
+    const y = (v) => T + (H - T - B) * (1 - v / max);
+    let g = "";
+    [0, 0.5, 1].forEach((f) => { const v = Math.round((max / 1.12) * f); g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" class="gl"/><text x="' + (L - 4) + '" y="' + (y(v) + 3) + '" text-anchor="end">' + v + "</text>"; });
+    [35, 90].forEach((th) => { if (th < max) g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(th) + '" y2="' + y(th) + '" class="th"/><text x="' + (W - R) + '" y="' + (y(th) - 3) + '" text-anchor="end" class="thl">' + (th === 35 ? "ฝนหนัก 35" : "หนักมาก 90") + "</text>"; });
+    for (let i = from; i < to; i++) {
+      const v = a.p[i], x = L + (i - from) * bw, past = i < a.today;
+      const h = Math.max(v > 0 ? 1.5 : 0, (H - T - B) - (y(v) - T));
+      const col = v >= 90 ? "var(--fl3)" : v >= 35 ? "var(--fl2)" : v >= 10 ? "var(--fl1)" : "var(--fl0)";
+      g += '<rect x="' + (x + 2) + '" y="' + (H - B - h) + '" width="' + (bw - 4) + '" height="' + h + '" rx="2" fill="' + col + '" opacity="' + (past ? 0.55 : 1) + '"><title>' + a.t[i] + ": " + v.toFixed(1) + " มม.</title></rect>";
+      if (v >= 1) g += '<text x="' + (x + bw / 2) + '" y="' + (H - B - h - 3) + '" text-anchor="middle" class="bv">' + Math.round(v) + "</text>";
+      const d = parseLocal(a.t[i]);
+      g += '<text x="' + (x + bw / 2) + '" y="' + (H - 12) + '" text-anchor="middle"' + (i === a.today ? ' class="today"' : "") + ">" + (i === a.today ? "วันนี้" : d.d) + "</text>";
+    }
+    const xt = L + (a.today - from) * bw;
+    g += '<line x1="' + xt + '" x2="' + xt + '" y1="' + T + '" y2="' + (H - B) + '" class="nowl"/>';
+    g += '<text x="' + (xt - 4) + '" y="' + (T + 8) + '" text-anchor="end" class="side">ย้อนหลัง</text><text x="' + (xt + 4) + '" y="' + (T + 8) + '" class="side">คาดการณ์</text>';
+    let riverHtml = "";
+    if (a.rv) {
+      const rv = a.rv, s0 = Math.max(0, rv.ti - 30), s1 = Math.min(rv.q.length, (rv.ti > 0 ? rv.ti : 60) + 21);
+      const RW = 420, RH = 130, rl = 34, rr = 8, rtp = 10, rb = 22, m = s1 - s0;
+      const vals = rv.qmax.slice(s0, s1).concat(rv.q.slice(s0, s1)).filter((v) => v != null);
+      const rmax = Math.max(rv.med * 2.2, ...vals) * 1.08;
+      const ry = (v) => rtp + (RH - rtp - rb) * (1 - v / rmax), rx = (i) => rl + ((i - s0) / (m - 1)) * (RW - rl - rr);
+      const line = (arr, a0, a1) => { let d = ""; for (let i = a0; i < a1; i++) if (arr[i] != null) d += (d ? " L" : "M") + rx(i).toFixed(1) + " " + ry(arr[i]).toFixed(1); return d; };
+      let rg = "";
+      [rv.med, rv.med * 2, rv.med * 4].forEach((v, k) => { if (v < rmax) rg += '<line x1="' + rl + '" x2="' + (RW - rr) + '" y1="' + ry(v) + '" y2="' + ry(v) + '" class="' + (k ? "th" : "gl") + '"/><text x="' + (rl - 4) + '" y="' + (ry(v) + 3) + '" text-anchor="end">' + (k ? k * 2 + "×" : "ปกติ") + "</text>"; });
+      const split = Math.max(s0, rv.ti);
+      rg += '<path d="' + line(rv.qmax, split, s1) + '" class="rmax"/>';
+      rg += '<path d="' + line(rv.q, s0, split + 1) + '" class="rpast"/><path d="' + line(rv.q, split, s1) + '" class="rfut"/>';
+      if (rv.ti >= s0) rg += '<line x1="' + rx(rv.ti) + '" x2="' + rx(rv.ti) + '" y1="' + rtp + '" y2="' + (RH - rb) + '" class="nowl"/>';
+      for (let i = s0; i < s1; i += 10) { const d = parseLocal(rv.time[i]); rg += '<text x="' + rx(i) + '" y="' + (RH - 6) + '" text-anchor="middle">' + d.d + " " + MON[d.m - 1] + "</text>"; }
+      riverHtml = '<div class="fsub">ปริมาณน้ำในแม่น้ำใกล้จุดนี้ <span class="muted">(ลูกบาศก์เมตร/วินาที · ตอนนี้ ' + (rv.now != null ? rv.now.toFixed(rv.now < 10 ? 1 : 0) : "–") + " · ปกติ " + rv.med.toFixed(rv.med < 10 ? 1 : 0) + ")</span></div>" +
+        '<div class="fchart"><svg viewBox="0 0 ' + RW + " " + RH + '" role="img" aria-label="กราฟปริมาณน้ำในแม่น้ำ">' + rg + "</svg></div>" +
+        '<div class="flegend"><span><i class="lp"></i>ที่ผ่านมา</span><span><i class="lf"></i>คาดการณ์</span><span><i class="lm"></i>กรณีน้ำมากสุด</span></div>';
+    } else {
+      riverHtml = '<p class="muted small">ไม่พบแม่น้ำสายหลักใกล้จุดนี้ในแบบจำลอง GloFAS จึงประเมินจากปริมาณฝนอย่างเดียว</p>';
+    }
+    $("flood-body").innerHTML =
+      '<p class="ftip ' + L0.cls + '">' + L0.tip + "</p>" +
+      '<ul class="fwhy">' + a.why.map((w) => '<li class="lv' + w.lv + '">' + w.text + "</li>").join("") + "</ul>" +
+      '<div class="ftiles">' +
+      tile("ฝนเมื่อวาน", a.s.past1) + tile("3 วันที่ผ่านมา", a.s.past3, a.s.past3 >= 60) + tile("7 วันที่ผ่านมา", a.s.past7, a.s.past7 >= 150) +
+      tile("คาดวันนี้", a.s.next1, a.s.next1 >= 35) + tile("คาด 3 วัน", a.s.next3, a.s.next3 >= 60) + tile("คาด 7 วัน", a.s.next7, a.s.next7 >= 150) +
+      "</div>" +
+      '<div class="fsub">ฝนรายวัน 7 วันย้อนหลัง และ 7 วันข้างหน้า <span class="muted">(มม.)</span></div>' +
+      '<div class="fchart"><svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="กราฟฝนรายวัน">' + g + "</svg></div>" +
+      riverHtml +
+      '<p class="muted small">เป็นการประเมินคร่าวๆ จากแบบจำลองพยากรณ์ ไม่ใช่ประกาศทางการ ติดตามประกาศจริงที่ <a href="https://www.tmd.go.th/" target="_blank" rel="noopener">กรมอุตุนิยมวิทยา</a> · <a href="https://www.thaiwater.net/" target="_blank" rel="noopener">คลังข้อมูลน้ำแห่งชาติ</a> · <a href="https://www.disaster.go.th/" target="_blank" rel="noopener">ปภ.</a></p>';
+    // map chip: show a flood note when risk is raised
+    if (a.level >= 1) {
+      $("chip-flood").hidden = false;
+      $("flood-chip-text").textContent = "น้ำท่วม: " + L0.name;
+      $("chip-flood").querySelector(".badge").className = "badge flood " + L0.cls;
+    } else $("chip-flood").hidden = true;
+  }
+  $("chip-flood").onclick = () => $("flood").scrollIntoView({ behavior: "smooth", block: "start" });
+
+  // ---------- full-screen map ----------
+  function setMapFull(on) {
+    document.body.classList.toggle("mapfull", on);
+    $("btn-full").setAttribute("aria-pressed", String(on));
+    $("btn-full").setAttribute("aria-label", on ? "ย่อแผนที่" : "ขยายแผนที่เต็มจอ");
+    $("btn-full").innerHTML = on ? FULL_OFF : FULL_ON;
+    if (map) setTimeout(() => { map.invalidateSize(); particles.reset(); }, 60);
+  }
+  const FULL_ON = '<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+  const FULL_OFF = '<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+  $("btn-full").innerHTML = FULL_ON;
+  $("btn-full").onclick = () => setMapFull(!document.body.classList.contains("mapfull"));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.body.classList.contains("mapfull") && $("drawer").hidden) setMapFull(false); });
 
   let lastLoad = Date.now();
   document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - lastLoad > 15 * 60 * 1000) { lastLoad = Date.now(); loadForecast(); if (map) { if (layer === "radar") loadRadar(); else if (LAYERS[layer].kind === "field") ensureField(true); } } });

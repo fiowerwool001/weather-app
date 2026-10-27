@@ -13,6 +13,8 @@
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://api.open-meteo.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
@@ -930,7 +932,7 @@ body[data-view="map"] .tabbar { display: none; }
     map.on("movestart", () => particles.pause());
     map.on("moveend", () => {
       clearTimeout(mt);
-      mt = setTimeout(() => { if (LAYERS[layer].kind !== "sat" || extrasOn()) ensureField(false); particles.reset(); loadCams(); loadRivers(); drawFavs(); }, 400);
+      mt = setTimeout(() => { { const k = LAYERS[layer].kind; if (k === "field" || extrasOn() || (k === "radar" && field)) ensureField(false); } particles.reset(); loadCams(); loadRivers(); drawFavs(); }, 400);
     });
     initParticles();
     applyLayer();
@@ -948,7 +950,7 @@ body[data-view="map"] .tabbar { display: none; }
       radar.frames = frames;
       radar.layers = frames.map((f) => L.tileLayer(j.host + f.path + "/256/{z}/{x}/{y}/2/1_1.png", { opacity: 0, maxNativeZoom: 7, maxZoom: 19, zIndex: 300 }));
       radar.loaded = Date.now();
-      if (layer === "radar") { radar.layers.forEach((l) => l.addTo(map)); setupSlider(); ensureField(false); }
+      if (layer === "radar") { radar.layers.forEach((l) => l.addTo(map)); setupSlider(); if (extrasOn() || field) ensureField(false); }
     } catch (_) {
       if (layer === "radar") $("tlabel").textContent = "โหลดเรดาร์ไม่ได้";
     }
@@ -1073,7 +1075,7 @@ body[data-view="map"] .tabbar { display: none; }
   // ----- radar look-ahead: after the last radar picture, show forecast rain every 15 min up to 3 h ahead -----
   const AHEAD_MIN = 180, AHEAD_STEP = 15;
   function nowcastTimes() {
-    if (!field || !radar.frames.length) return [];
+    if (!radar.frames.length) return [];
     const last = radar.frames[radar.frames.length - 1].time * 1000, end = Date.now() + AHEAD_MIN * 60e3, out = [];
     for (let t = Math.ceil((last + 1) / (AHEAD_STEP * 60e3)) * AHEAD_STEP * 60e3; t <= end; t += AHEAD_STEP * 60e3) out.push(t);
     return out;
@@ -1092,7 +1094,9 @@ body[data-view="map"] .tabbar { display: none; }
   }
   function drawNowcast(k) {
     const times = nowcastTimes(), t = times[Math.min(k, times.length - 1)];
-    if (!t || !field) return;
+    if (!t) return;
+    // the forecast grid is only fetched once someone looks past the last radar picture
+    if (!field) { radar.layers.forEach((l) => l.setOpacity(0)); $("tlabel").textContent = "กำลังโหลดฝนคาดการณ์…"; ensureField(false); return; }
     radar.layers.forEach((l) => l.setOpacity(0));
     const h0 = new Date(field.times[field.start] + ":00Z").getTime();
     // hourly totals are for the hour ending at each time step, so centre them on the half hour
@@ -1250,11 +1254,11 @@ body[data-view="map"] .tabbar { display: none; }
     if (L0.kind === "radar") {
       if (!radar.frames.length || Date.now() - radar.loaded > 10 * 60 * 1000) { $("tlabel").textContent = "กำลังโหลดเรดาร์…"; loadRadar(); }
       else { radar.layers.forEach((l) => { if (!map.hasLayer(l)) l.addTo(map); }); setupSlider(); }
-      ensureField(false);
+      if (extrasOn() || field) ensureField(false);
     } else if (L0.kind === "sat") {
       setupSlider(); showSat(); if (extrasOn()) ensureField(false);
     } else if (L0.kind === "none") {
-      setupSlider(); ensureField(false);
+      setupSlider(); if (extrasOn()) ensureField(false);
     } else {
       tIndex = -1;
       ensureField(false);
@@ -1763,6 +1767,12 @@ body[data-view="map"] .tabbar { display: none; }
   $$(".tab").forEach((t) => t.setAttribute("aria-current", t.dataset.v === "today" ? "page" : "false"));
   history.replaceState({ v: "today" }, "", location.pathname + location.search);
   renderHeader();
+  // show the last saved forecast at once, then refresh it in the background
+  const c0 = store.get("wx-cache", null);
+  if (c0 && c0.place && c0.place.lat === place.lat && c0.place.lon === place.lon && c0.model === model && Date.now() - c0.at < 12 * 3600e3) {
+    fc = c0.fc; render();
+    setStatus("กำลังอัปเดต… (ข้อมูลเมื่อ " + new Date(c0.at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }) + " น.)");
+  }
   drawScale();
   initMap();
   syncCams();

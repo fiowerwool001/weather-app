@@ -1416,6 +1416,8 @@ body[data-view="map"] .tabbar { display: none; }
     if (riverAt && riverAt.b.contains(vb) && map.getZoom() === riverAt.z) return;
     const idx = await getRiverIndex();
     if (!idx) return loadRiversLive();
+    // the prebuilt data fills in region by region; until this area is in, fetch it live
+    if (idx.boxes) { const c = map.getCenter(), bk = (5 + 2 * Math.floor((c.lat - 5) / 2)) + "_" + (97 + 2 * Math.floor((c.lng - 97) / 2)); if (!idx.boxes.includes(bk)) return loadRiversLive(); }
     const z = map.getZoom();
     if (z < 7) { if (riverLayer) riverLayer.clearLayers(); riverAt = null; $("river-note").textContent = "ซูมแผนที่เข้าใกล้อีกหน่อย เพื่อดูเส้นแม่น้ำบริเวณนั้น"; return; }
     const pad = vb.pad(0.25), S = pad.getSouth(), N = pad.getNorth(), W = pad.getWest(), E = pad.getEast();

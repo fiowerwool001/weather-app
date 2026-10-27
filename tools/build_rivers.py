@@ -72,6 +72,7 @@ def load_geometry():
         g = {"at": time.time(), "done": [], "ways": {}}
     S, W, N, E = BBOX
     boxes = [(la, lo) for la in range(math.floor(S), math.ceil(N), 2) for lo in range(math.floor(W), math.ceil(E), 2)]
+    boxes.sort(key=region_order)
     start = time.time()
     for la, lo in boxes:
         key = f"{la}_{lo}"
@@ -94,7 +95,15 @@ def load_geometry():
         json.dump(g, open(GEOM_FILE, "w"), ensure_ascii=False, separators=(",", ":"))
         time.sleep(5)
     print("boxes done", len(g["done"]), "of", len(boxes))
-    return list(g["ways"].values())
+    return list(g["ways"].values()), g["done"]
+
+
+def region_order(p):
+    """South first, then the other regions going north (Ram's request); boxes outside Thailand's land last."""
+    la, lo = p
+    south = la < 11 and lo <= 101
+    thai = lo <= 103 or 13 <= la < 19
+    return (0 if south else 1 if thai else 2, la, lo)
 
 FLOW_FILE = "rivers-flow.json"
 MED_BUDGET = 1200      # new cells per run for the 30-day normal (keeps each run under the hourly API limit)
@@ -120,6 +129,7 @@ def load_flow(keys):
     flow = json.load(open(FLOW_FILE)) if os.path.exists(FLOW_FILE) else {}
     now = time.time()
     kid = lambda k: f"{k[0]:.2f},{k[1]:.2f}"
+    keys = sorted(keys, key=lambda k: region_order((k[0], k[1])))
     need_med = [k for k in keys if kid(k) not in flow or now - flow[kid(k)].get("mat", 0) > 30 * 86400][:MED_BUDGET]
     print("normal-flow cells this run", len(need_med))
     for b in range(0, len(need_med), 50):
@@ -158,7 +168,7 @@ def load_flow(keys):
 
 
 def main():
-    ways = load_geometry()
+    ways, boxes_done = load_geometry()
     # sample points along each river, one per GloFAS cell (0.05 deg)
     cells = {}
     for w in ways:
@@ -223,7 +233,7 @@ def main():
         os.remove(os.path.join(TILE_DIR, f))
     for key, ws in tiles.items():
         json.dump({"at": at, "ways": ws}, open(os.path.join(TILE_DIR, key + ".json"), "w"), ensure_ascii=False, separators=(",", ":"))
-    json.dump({"at": at, "tiles": sorted(tiles)}, open(os.path.join(TILE_DIR, "index.json"), "w"), separators=(",", ":"))
+    json.dump({"at": at, "tiles": sorted(tiles), "boxes": sorted(boxes_done)}, open(os.path.join(TILE_DIR, "index.json"), "w"), separators=(",", ":"))
     print("tiles", len(tiles))
 
 if __name__ == "__main__":

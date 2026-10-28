@@ -329,6 +329,18 @@ body[data-view="map"] .tabbar { display: none; }
   .wrow { grid-template-columns: 46px 34px 48px 28px minmax(0, 1fr) 28px; }
 }
 .rdr{transition:opacity .35s linear}
+.r3 { margin-top: 12px; padding: 14px 16px; }
+.r3-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.r3-l { display: block; font-size: .8rem; color: var(--muted); }
+.r3-top b { font-size: 1.6rem; font-weight: 600; }
+.r3-top b small { font-size: .85rem; font-weight: 400; color: var(--muted); }
+.r3-lv { padding: 4px 10px; border-radius: 99px; font-size: .78rem; font-weight: 600; white-space: nowrap; }
+.r3-bars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+.r3-bar { text-align: center; font-size: .75rem; color: var(--muted); }
+.r3-bar .b { height: 44px; border-radius: 8px; background: rgba(255,255,255,.06); display: flex; align-items: flex-end; overflow: hidden; margin-bottom: 4px; }
+.r3-bar .b i { display: block; width: 100%; border-radius: 8px; }
+.r3-bar em { font-style: normal; color: var(--text, #fff); font-weight: 500; }
+.r3-tip { margin: 10px 0 4px; font-size: .85rem; color: var(--muted); }
 </style>
 </head>
 <body data-view="today">
@@ -409,6 +421,12 @@ body[data-view="map"] .tabbar { display: none; }
       <div class="stat"><span>ฝนวันนี้</span><b class="tnum" id="st-rain">–</b></div>
       <div class="stat"><span>โอกาสฝน</span><b class="tnum" id="st-prob">–</b></div>
       <div class="stat"><span>ลมกระโชก</span><b class="tnum" id="st-gust">–</b></div>
+    </div>
+    <div class="card r3" id="r3" hidden>
+      <div class="r3-top"><div><span class="r3-l">ฝนสะสม 3 ชม. ข้างหน้า</span><b class="tnum" id="r3-sum">–</b></div><span class="r3-lv" id="r3-lv"></span></div>
+      <div class="r3-bars" id="r3-bars"></div>
+      <p class="r3-tip" id="r3-tip"></p>
+      <button class="linkbtn" type="button" id="r3-map">ดูฝนสะสม 3 ชม. บนแผนที่</button>
     </div>
     <button class="alert warn" id="alert-warn" type="button" hidden>
       <span class="ai" style="background:rgba(255,138,76,.25)"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 22 20H2z" fill="#FF8A4C"/><path d="M12 9v5M12 16.5v1" stroke="#0B1220" stroke-width="2.2" stroke-linecap="round"/></svg></span>
@@ -492,7 +510,7 @@ body[data-view="map"] .tabbar { display: none; }
   let step = Number(store.get("wx-step", 3));
   let model = store.get("wx-model", "best_match");
   let layer = store.get("wx-layer", "radar");
-  let fc = null, selDay = 0;
+  let fc = null, selDay = 0, wantAccum = 0;
   let map = null, marker = null;
   let view = "today", mapBack = "today";
   $("sel-model").value = model;
@@ -643,6 +661,7 @@ body[data-view="map"] .tabbar { display: none; }
     $("st-rain").innerHTML = fmt1(d.precipitation_sum[0] || 0) + "<small> มม.</small>";
     $("st-prob").innerHTML = (d.precipitation_probability_max ? (d.precipitation_probability_max[0] ?? "–") : "–") + "<small>%</small>";
     $("st-gust").innerHTML = (d.wind_gusts_10m_max ? Math.round(d.wind_gusts_10m_max[0]) : "–") + "<small> km/h</small>";
+    renderRain3();
     // warning: heavy rain, thunder or strong gusts in the next 48 h
     const h = fc.hourly, start = nowIndex();
     let warn = null;
@@ -662,6 +681,38 @@ body[data-view="map"] .tabbar { display: none; }
       $("chip-warn").onclick = go; $("alert-warn").onclick = go;
     }
   }
+
+  // rain in the next 3 hours at this place, with a flash-flood level
+  const R3_LV = [
+    { name: "ปกติ", tip: "ไม่มีฝนหนัก" },
+    { name: "ฝนหนัก", tip: "อาจมีน้ำขังบนถนนและที่ลุ่มต่ำ" },
+    { name: "ระวังน้ำท่วมขัง", tip: "ฝนหนักมาก ท่อระบายน้ำอาจรับไม่ทัน เลี่ยงเส้นทางที่น้ำท่วมบ่อย ยกของขึ้นที่สูง" },
+    { name: "เสี่ยงน้ำท่วมฉับพลัน", tip: "ระวังน้ำป่าและน้ำท่วมฉับพลัน อยู่ห่างลำน้ำและที่ลาดเชิงเขา ติดตามประกาศทางการ" },
+  ];
+  function rain3h() {
+    const h = fc.hourly, s = nowIndex(), hrs = [];
+    for (let i = s + 1; i <= s + 3 && i < h.time.length; i++) hrs.push({ t: h.time[i], v: h.precipitation[i] || 0, p: h.precipitation_probability ? h.precipitation_probability[i] : null });
+    const sum = hrs.reduce((a, x) => a + x.v, 0), peak = Math.max(0, ...hrs.map((x) => x.v));
+    let lv = sum >= 60 ? 3 : sum >= 35 ? 2 : sum >= 10 ? 1 : 0;
+    if (peak >= 30) lv = Math.max(lv, 2);   // a cloudburst overwhelms drains even if the total is lower
+    return { hrs, sum, peak, lv };
+  }
+  function renderRain3() {
+    const r = rain3h();
+    if (!r.hrs.length) { $("r3").hidden = true; return; }
+    $("r3").hidden = false;
+    $("r3-sum").innerHTML = fmt1(r.sum) + "<small> มม.</small>";
+    const col = LV_COL[r.lv];
+    $("r3-lv").textContent = R3_LV[r.lv].name;
+    $("r3-lv").style.cssText = "background:" + col + "26;color:" + col;
+    $("r3").style.borderColor = r.lv ? col + "66" : "";
+    $("r3-tip").textContent = R3_LV[r.lv].tip + (r.peak >= 1 ? " · หนักสุด " + fmt1(r.peak) + " มม./ชม." : "");
+    $("r3-bars").innerHTML = r.hrs.map((x) => {
+      const p = parseLocal(x.t), c = x.v >= 30 ? "#FF5A5F" : x.v >= 10 ? "#FF8A4C" : x.v >= 2 ? "#5AB0FF" : "#8CC8FF";
+      return '<div class="r3-bar"><div class="b"><i style="height:' + Math.min(100, x.v / 30 * 100).toFixed(0) + "%;min-height:" + (x.v > 0 ? 3 : 0) + "px;background:" + c + '"></i></div><em class="tnum">' + fmt1(x.v) + "</em> มม.<br>" + String((p.h + 23) % 24).padStart(2, "0") + "–" + String(p.h).padStart(2, "0") + " น.</div>";
+    }).join("");
+  }
+  $("r3-map").onclick = () => { layer = "accum"; wantAccum = 3; store.set("wx-layer", layer); setView("map"); if (map) applyLayer(); };
 
   function renderWeek() {
     const d = fc.daily, n = Math.min(7, d.time.length);
@@ -945,7 +996,7 @@ body[data-view="map"] .tabbar { display: none; }
     try {
       const r = await fetch("https://api.rainviewer.com/public/weather-maps.json");
       const j = await r.json();
-      const frames = ((j.radar && j.radar.past) || []).concat((j.radar && j.radar.nowcast) || []).slice(-12);
+      const frames = ((j.radar && j.radar.past) || []).filter((f) => f.time * 1000 >= Date.now() - 65 * 60e3).concat((j.radar && j.radar.nowcast) || []);
       if (!frames.length) throw new Error("no frames");
       radar.layers.forEach((l) => map.removeLayer(l));
       radar.frames = frames;
@@ -1241,6 +1292,7 @@ body[data-view="map"] .tabbar { display: none; }
       const now = field.start - field.first;
       const max = Math.min(now + 48, field.times.length - 1 - field.first);
       sl.max = String(max);
+      if (layer === "accum" && wantAccum) { tIndex = Math.min(now + wantAccum, max); wantAccum = 0; }
       if (layer === "accum" && tIndex < 0) tIndex = Math.min(now + 24, max);
       if (tIndex < 0 || tIndex > max) tIndex = now;
       sl.value = String(tIndex);
